@@ -10,6 +10,7 @@ import {
   type ReportPeriod,
   type ReportType,
 } from '../../services/report.service';
+import { downloadAppReportCsv, reportTypeLabel } from '../../utils/report-csv';
 import './app-dashboard.css';
 
 const REPORT_TABS: { type: ReportType; label: string }[] = [
@@ -77,9 +78,24 @@ export function AppReportPage({ config }: { config: AppUiConfig }) {
           </h1>
           <p>Komplain, SLA penanganan, dan pemakaian sparepart/alat per bulan atau per tahun</p>
         </div>
-        <Link to={config.dashboardPath}>
-          <Button variant="secondary">← Dashboard</Button>
-        </Link>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <Link to={config.dashboardPath}>
+            <Button variant="secondary">← Dashboard</Button>
+          </Link>
+          {report && !loading && (
+            <Button
+              variant="secondary"
+              onClick={() =>
+                downloadAppReportCsv(
+                  report,
+                  `${config.appCode.toLowerCase()}-${reportTypeLabel(report.reportType)}`,
+                )
+              }
+            >
+              Export CSV
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card title="Periode">

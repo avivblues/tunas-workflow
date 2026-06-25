@@ -7,6 +7,9 @@ Dokumen ini untuk tim **ISP Billing** dan **Tunas IoT** agar bisa terhubung ke T
 Base URL production: `http://103.94.238.207:3050/api`  
 Base URL lokal: `http://localhost:3000/api`
 
+**Swagger UI (interactive):** `http://103.94.238.207:3050/api/docs`  
+OpenAPI JSON: `http://103.94.238.207:3050/api/docs/json`
+
 ---
 
 ## Autentikasi Webhook
@@ -110,7 +113,8 @@ curl -X POST "http://103.94.238.207:3050/api/integration/isp/01/webhook" \
 |--------|------|--------|
 | `GET` | `/tickets` | List transaksi (semua app bundle, atau filter `?app_code=`) |
 | `GET` | `/tickets/{trxNo}` | Detail + logs + available transitions |
-| `GET` | `/report?app_code=ISP_TICKET&type=aging\|sla\|technician&days=30` | Reporting per app |
+| `GET` | `/report?app_code=&type=complaint\|sla\|asset_usage&period=month\|year` | Laporan per modul |
+| `GET` | `/reports/bundle?app_code=&period=month\|year` | Ketiga laporan sekaligus |
 | `GET` | `/processes` | Flow semua app bundle (`?app_code=` untuk satu modul) |
 
 **Query list tickets:** `app_code`, `status`, `process`, `area`, `customer_id`, `since` (ISO datetime), `page`, `limit`

@@ -4,8 +4,11 @@ import { Badge } from '../../components/atoms/Badge';
 import { Button } from '../../components/atoms/Button';
 import { Card } from '../../components/atoms/Card';
 import { Input } from '../../components/atoms/Input';
+import { ConfirmSaveModal } from '../../components/molecules/ConfirmSaveModal';
+import { FormFeedback } from '../../components/molecules/FormFeedback';
 import type { User, Role } from '../../services/master.service';
 import { createUser, listRoles, listUsers } from '../../services/master.service';
+import { getErrorMessage } from '../../services/api-client';
 
 export function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -19,7 +22,9 @@ export function UsersPage() {
     roleId: '',
   });
   const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function load() {
     const [u, r] = await Promise.all([listUsers(), listRoles()]);
@@ -31,10 +36,15 @@ export function UsersPage() {
     load().catch(console.error);
   }, []);
 
-  async function handleSubmit(e: FormEvent) {
+  function handleReview(e: FormEvent) {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setFormError('');
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirmSave() {
+    setLoading(true);
+    setFormError('');
     try {
       await createUser({
         username: form.username,
@@ -43,14 +53,19 @@ export function UsersPage() {
         email: form.email || undefined,
         roleId: form.roleId || undefined,
       });
-      setMessage('User created successfully');
+      setMessage(`User "${form.fullName}" berhasil dibuat`);
+      setConfirmOpen(false);
       setShowForm(false);
       setForm({ username: '', password: '', fullName: '', email: '', roleId: '' });
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create user');
+      setFormError(getErrorMessage(err, 'Gagal membuat user'));
+    } finally {
+      setLoading(false);
     }
   }
+
+  const selectedRole = roles.find((r) => r.id === form.roleId);
 
   return (
     <div>
@@ -60,7 +75,6 @@ export function UsersPage() {
       </div>
 
       {message && <div className="alert alert-success">{message}</div>}
-      {error && <div className="alert alert-error">{error}</div>}
 
       <Card
         title="User List"
@@ -71,7 +85,8 @@ export function UsersPage() {
         }
       >
         {showForm && (
-          <form onSubmit={handleSubmit} className="form-grid" style={{ marginBottom: '1.5rem' }}>
+          <form onSubmit={handleReview} className="form-grid" style={{ marginBottom: '1.5rem' }}>
+            <FormFeedback error={formError} />
             <Input
               label="Username"
               value={form.username}
@@ -113,7 +128,7 @@ export function UsersPage() {
               </select>
             </div>
             <div className="form-actions">
-              <Button type="submit">Create User</Button>
+              <Button type="submit">Lanjut Konfirmasi →</Button>
             </div>
           </form>
         )}
@@ -143,6 +158,33 @@ export function UsersPage() {
           </tbody>
         </table>
       </Card>
+
+      <ConfirmSaveModal
+        open={confirmOpen}
+        title="Buat User Baru"
+        summary={
+          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+            <li>
+              Username: <strong>{form.username}</strong>
+            </li>
+            <li>
+              Nama: <strong>{form.fullName}</strong>
+            </li>
+            {form.email && <li>Email: {form.email}</li>}
+            {selectedRole && (
+              <li>
+                Role: {selectedRole.name} ({selectedRole.code})
+              </li>
+            )}
+          </ul>
+        }
+        busy={loading}
+        error={formError}
+        onConfirm={() => void handleConfirmSave()}
+        onCancel={() => {
+          if (!loading) setConfirmOpen(false);
+        }}
+      />
     </div>
   );
 }

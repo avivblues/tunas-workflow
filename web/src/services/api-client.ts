@@ -25,6 +25,12 @@ export class ApiClientError extends Error {
   }
 }
 
+export function getErrorMessage(err: unknown, fallback = 'Terjadi kesalahan'): string {
+  if (err instanceof ApiClientError) return err.message;
+  if (err instanceof Error) return err.message;
+  return fallback;
+}
+
 function getToken(): string | null {
   return localStorage.getItem('tunas_token');
 }
@@ -60,7 +66,19 @@ export async function apiRequest<T>(
     headers,
   });
 
-  const body = (await response.json()) as ApiResponse<T>;
+  const rawText = await response.text();
+  let body: ApiResponse<T>;
+  try {
+    body = JSON.parse(rawText) as ApiResponse<T>;
+  } catch {
+    const fallback =
+      response.status === 502
+        ? 'Server tidak tersedia (502). Backend mungkin sedang restart — coba beberapa saat lagi.'
+        : response.status >= 500
+          ? `Server error (${response.status})`
+          : 'Respons server tidak valid';
+    throw new ApiClientError('SERVER_ERROR', fallback, response.status);
+  }
 
   if (body.success === false) {
     throw new ApiClientError(body.errorCode, body.message, response.status);

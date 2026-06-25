@@ -82,3 +82,30 @@ export async function getMe(userId: string, tenantId: string): Promise<AuthUser 
 }
 
 export { hashPassword };
+
+export const lookupTenantsSchema = z.object({
+  username: z.string().min(1),
+});
+
+export async function lookupTenantsForUsername(username: string) {
+  const users = await prisma.user.findMany({
+    where: {
+      username,
+      active: true,
+      tenant: { active: true },
+    },
+    include: {
+      tenant: { select: { id: true, code: true, name: true } },
+      role: { select: { code: true, name: true } },
+    },
+    orderBy: { tenant: { code: 'asc' } },
+  });
+
+  return users.map((user) => ({
+    tenantCode: user.tenant.code,
+    tenantName: user.tenant.name,
+    fullName: user.fullName,
+    roleCode: user.role?.code ?? null,
+    roleName: user.role?.name ?? null,
+  }));
+}

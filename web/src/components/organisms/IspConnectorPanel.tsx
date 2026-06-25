@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { ConfirmSaveModal } from '../molecules/ConfirmSaveModal';
+import { FormFeedback } from '../molecules/FormFeedback';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
+import { ApiClientError } from '../../services/api-client';
 import { updateConnector, type InstalledConnector } from '../../services/connector.service';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
@@ -54,7 +57,7 @@ export function IspConnectorPanel({
 }: {
   connector: InstalledConnector;
   tenantCode: string;
-  onSaved?: (message: string) => void;
+  onSaved?: (message: string) => void | Promise<void>;
 }) {
   const [form, setForm] = useState({
     callback_url: String(connector.config.callback_url ?? ''),
@@ -63,6 +66,8 @@ export function IspConnectorPanel({
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [exampleApp, setExampleApp] = useState<string>('ISP_TICKET');
 
   useEffect(() => {
@@ -78,22 +83,37 @@ export function IspConnectorPanel({
   const year = new Date().getFullYear();
   const month = new Date().getMonth() + 1;
 
-  async function handleSave(e: FormEvent) {
+  function handleReview(e: FormEvent) {
     e.preventDefault();
+    setError('');
+    setSuccess('');
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirmSave() {
     setBusy(true);
     setError('');
+    setSuccess('');
     try {
       await updateConnector(connector.id, {
         config: {
           ...connector.config,
-          callback_url: form.callback_url || undefined,
+          callback_url: form.callback_url.trim() || undefined,
           callback_secret: form.callback_secret || undefined,
           api_key: form.api_key || undefined,
         },
       });
-      onSaved?.('ISP Partner settings saved');
+      setSuccess('Pengaturan berhasil disimpan');
+      setConfirmOpen(false);
+      await onSaved?.('Pengaturan ISP Partner berhasil disimpan');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed');
+      const msg =
+        err instanceof ApiClientError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Gagal menyimpan pengaturan';
+      setError(msg);
     } finally {
       setBusy(false);
     }
@@ -103,8 +123,6 @@ export function IspConnectorPanel({
     <details className="connector-panel-details" open>
       <summary className="connector-panel-summary">ISP Partner API &amp; Callback Settings</summary>
       <div className="connector-panel-body">
-        {error && <div style={{ color: 'var(--color-danger, #c0392b)' }}>{error}</div>}
-
         <section className="isp-panel-section">
           <strong>ISP Product Bundle</strong>
           <p className="isp-panel-muted">
@@ -170,9 +188,11 @@ export function IspConnectorPanel({
         <section className="isp-panel-section">
           <strong>Partner API (Pull / Push)</strong>
           <p className="isp-panel-muted">
-            Panduan: <code>docs/ISP-INTEGRATION-GUIDE.md</code> · Postman:{' '}
-            <code>docs/postman/ISP-Partner-API.postman_collection.json</code> · Test:{' '}
-            <code>bash scripts/isp-partner-api-test.sh</code>
+            Panduan: <code>docs/ISP-INTEGRATION-GUIDE.md</code> · Swagger:{' '}
+            <a href="/api/docs" target="_blank" rel="noreferrer">
+              /api/docs
+            </a>{' '}
+            · Test: <code>bash scripts/isp-partner-api-test.sh</code>
           </p>
 
           <div className="isp-panel-subsection">
@@ -239,7 +259,7 @@ export function IspConnectorPanel({
             Semua modul mengirim callback ke URL yang sama. Payload menyertakan{' '}
             <code>app_code</code> + <code>trx_no</code>.
           </p>
-          <form onSubmit={handleSave} className="isp-panel-form">
+          <form onSubmit={handleReview} className="isp-panel-form">
             <Input
               label="Callback URL"
               placeholder="https://isp-app.example.com/api/tunas/callback"
@@ -258,12 +278,39 @@ export function IspConnectorPanel({
               value={form.api_key}
               onChange={(e) => setForm({ ...form, api_key: e.target.value })}
             />
+            <FormFeedback
+              success={success && !confirmOpen ? success : ''}
+              error={error && !confirmOpen ? error : ''}
+            />
             <Button type="submit" disabled={busy} variant="secondary">
-              Save ISP Partner settings
+              Simpan ISP Partner settings →
             </Button>
           </form>
         </section>
       </div>
+
+      <ConfirmSaveModal
+        open={confirmOpen}
+        title="Simpan Pengaturan ISP Partner"
+        summary={
+          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+            <li>
+              Callback URL: <strong>{form.callback_url || '—'}</strong>
+            </li>
+            <li>Callback secret: {form.callback_secret ? '••••••' : '—'}</li>
+            <li>API key: {form.api_key ? 'Di-set' : 'Default (webhook secret)'}</li>
+          </ul>
+        }
+        busy={busy}
+        error={confirmOpen ? error : ''}
+        onConfirm={() => void handleConfirmSave()}
+        onCancel={() => {
+          if (!busy) {
+            setConfirmOpen(false);
+            setError('');
+          }
+        }}
+      />
     </details>
   );
 }

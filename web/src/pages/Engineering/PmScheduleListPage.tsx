@@ -6,6 +6,8 @@ import { Button } from '../../components/atoms/Button';
 import { Card } from '../../components/atoms/Card';
 import { Input } from '../../components/atoms/Input';
 import { AssetSelector } from '../../components/molecules/AssetSelector';
+import { ConfirmSaveModal } from '../../components/molecules/ConfirmSaveModal';
+import { FormFeedback } from '../../components/molecules/FormFeedback';
 import {
   createPmSchedule,
   listPmSchedules,
@@ -13,6 +15,7 @@ import {
   type PmSchedule,
 } from '../../services/pm-schedule.service';
 import { listUsers, type User } from '../../services/master.service';
+import { getErrorMessage } from '../../services/api-client';
 
 export function PmScheduleListPage() {
   const [schedules, setSchedules] = useState<PmSchedule[]>([]);
@@ -29,6 +32,7 @@ export function PmScheduleListPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function load() {
     const [s, u] = await Promise.all([listPmSchedules(), listUsers()]);
@@ -40,19 +44,28 @@ export function PmScheduleListPage() {
     load().catch(console.error);
   }, []);
 
-  async function handleCreate(e: FormEvent) {
+  function handleReview(e: FormEvent) {
     e.preventDefault();
     setError('');
+    const checklist = checklistText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (checklist.length === 0) {
+      setError('Minimal satu item checklist');
+      return;
+    }
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirmCreate() {
     setLoading(true);
+    setError('');
     try {
       const checklist = checklistText
         .split('\n')
         .map((l) => l.trim())
         .filter(Boolean);
-      if (checklist.length === 0) {
-        setError('Add at least one checklist item');
-        return;
-      }
       await createPmSchedule({
         title,
         description,
@@ -62,12 +75,13 @@ export function PmScheduleListPage() {
         checklist,
         next_run_at: new Date().toISOString(),
       });
-      setMessage('PM schedule created');
+      setMessage(`Jadwal PM "${title}" berhasil dibuat`);
+      setConfirmOpen(false);
       setShowForm(false);
       setTitle('');
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create');
+      setError(getErrorMessage(err, 'Gagal membuat jadwal'));
     } finally {
       setLoading(false);
     }
@@ -107,7 +121,8 @@ export function PmScheduleListPage() {
 
       {showForm && (
         <Card title="Create PM Schedule">
-          <form onSubmit={handleCreate} className="form-grid">
+          <form onSubmit={handleReview} className="form-grid">
+            <FormFeedback error={error && !confirmOpen ? error : ''} />
             <Input label="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
             <AssetSelector
               label="Asset"
@@ -164,9 +179,9 @@ export function PmScheduleListPage() {
                 required
               />
             </div>
-            <Button type="submit" loading={loading}>
-              Save Schedule
-            </Button>
+            <div className="form-actions">
+              <Button type="submit">Lanjut Konfirmasi →</Button>
+            </div>
           </form>
         </Card>
       )}
@@ -203,6 +218,26 @@ export function PmScheduleListPage() {
           </table>
         )}
       </Card>
+
+      <ConfirmSaveModal
+        open={confirmOpen}
+        title="Buat Jadwal PM"
+        summary={
+          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+            <li>
+              Judul: <strong>{title}</strong>
+            </li>
+            <li>Frekuensi: {frequency}</li>
+            {description && <li>Deskripsi: {description}</li>}
+          </ul>
+        }
+        busy={loading}
+        error={error}
+        onConfirm={() => void handleConfirmCreate()}
+        onCancel={() => {
+          if (!loading) setConfirmOpen(false);
+        }}
+      />
     </div>
   );
 }

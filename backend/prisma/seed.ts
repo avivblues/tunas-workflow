@@ -668,7 +668,7 @@ async function main() {
         webhook_secret: demoWebhookSecret,
         tunasiot_base_url: 'https://app.tunasiot.com',
         mqtt_auto_wo_enabled: true,
-        min_severity: 'MEDIUM',
+        min_severity: 'CRITICAL',
         cooldown_minutes: 30,
       },
       mapping: {
@@ -692,7 +692,7 @@ async function main() {
             value: 45,
             severity: 'HIGH',
             title_template: 'High temperature sensor 1 — {asset_code}',
-            enabled: true,
+            enabled: false,
           },
           {
             id: 'humidity-1-high',
@@ -701,7 +701,7 @@ async function main() {
             value: 85,
             severity: 'MEDIUM',
             title_template: 'High humidity sensor 1 — {asset_code}',
-            enabled: true,
+            enabled: false,
           },
           {
             id: 'voltage-1-low',

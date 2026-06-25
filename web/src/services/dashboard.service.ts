@@ -41,7 +41,12 @@ export type AppMetrics =
       type: 'ISP_TICKET';
       metrics: {
         customerDown: number;
+        complaintsThisMonth: number;
+        complaintsLast7Days: number;
+        slaBreachOpen: number;
         byArea: { label: string; count: number }[];
+        byEvent: { label: string; count: number }[];
+        openByProcess: { label: string; count: number }[];
         repeatedComplaints: { customer: string; count: number }[];
         avgResolutionHours: number;
       };

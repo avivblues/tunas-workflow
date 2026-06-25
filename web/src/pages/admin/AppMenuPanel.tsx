@@ -4,6 +4,7 @@ import { Badge } from '../../components/atoms/Badge';
 import { Button } from '../../components/atoms/Button';
 import { Card } from '../../components/atoms/Card';
 import { Input } from '../../components/atoms/Input';
+import { ConfirmSaveModal } from '../../components/molecules/ConfirmSaveModal';
 import {
   getMenuPresetsForApp,
   SYSTEM_MENU_PRESETS,
@@ -20,6 +21,7 @@ import {
   updateMenuItem,
   type NavMenuItem,
 } from '../../services/menu.service';
+import { getErrorMessage } from '../../services/api-client';
 import './admin-settings.css';
 
 const emptyForm = {
@@ -49,6 +51,7 @@ export function AppMenuPanel({ selectedApp, selectedLabel }: AppMenuPanelProps) 
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const presets = useMemo((): MenuPathPreset[] => {
     if (selectedApp === 'SYSTEM') return SYSTEM_MENU_PRESETS;
@@ -80,8 +83,13 @@ export function AppMenuPanel({ selectedApp, selectedLabel }: AppMenuPanelProps) 
     load().catch(console.error);
   }, [selectedApp]);
 
-  async function handleSubmit(e: FormEvent) {
+  function handleReview(e: FormEvent) {
     e.preventDefault();
+    setError('');
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirmSave() {
     setSaving(true);
     setError('');
     try {
@@ -111,12 +119,13 @@ export function AppMenuPanel({ selectedApp, selectedLabel }: AppMenuPanelProps) 
         });
         setMessage('Menu berhasil ditambahkan');
       }
+      setConfirmOpen(false);
       setShowForm(false);
       setEditingId(null);
       setForm(emptyForm);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal menyimpan');
+      setError(getErrorMessage(err, 'Gagal menyimpan'));
     } finally {
       setSaving(false);
     }
@@ -291,7 +300,7 @@ export function AppMenuPanel({ selectedApp, selectedLabel }: AppMenuPanelProps) 
             }
           >
             {showForm && (
-              <form onSubmit={handleSubmit} className="form-grid" style={{ marginBottom: '1.5rem', maxWidth: '100%' }}>
+              <form onSubmit={handleReview} className="form-grid" style={{ marginBottom: '1.5rem', maxWidth: '100%' }}>
                 <div style={{ gridColumn: '1 / -1', fontWeight: 600, color: '#0f766e' }}>
                   {editingId ? 'Edit Menu' : 'Tambah Menu Baru'}
                 </div>
@@ -381,7 +390,7 @@ export function AppMenuPanel({ selectedApp, selectedLabel }: AppMenuPanelProps) 
 
                 <div className="form-actions">
                   <Button type="submit" disabled={saving}>
-                    {saving ? 'Menyimpan...' : editingId ? 'Simpan Perubahan' : 'Tambah Menu'}
+                    {editingId ? 'Lanjut Konfirmasi →' : 'Lanjut Konfirmasi →'}
                   </Button>
                   <Button
                     type="button"
@@ -485,6 +494,36 @@ export function AppMenuPanel({ selectedApp, selectedLabel }: AppMenuPanelProps) 
           </Card>
         </div>
       </div>
+
+      <ConfirmSaveModal
+        open={confirmOpen}
+        title={editingId ? 'Simpan Perubahan Menu' : 'Tambah Menu Baru'}
+        summary={
+          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+            <li>
+              Label: <strong>{form.label}</strong>
+            </li>
+            <li>Path: {form.path}</li>
+            {!editingId && (
+              <li>
+                Kode: <strong>{form.menuCode.toUpperCase()}</strong>
+              </li>
+            )}
+            <li>
+              Tampil: Web {form.showWeb ? '✓' : '✗'} · Mobile {form.showMobile ? '✓' : '✗'}
+            </li>
+          </ul>
+        }
+        busy={saving}
+        error={confirmOpen ? error : ''}
+        onConfirm={() => void handleConfirmSave()}
+        onCancel={() => {
+          if (!saving) {
+            setConfirmOpen(false);
+            setError('');
+          }
+        }}
+      />
     </div>
   );
 }

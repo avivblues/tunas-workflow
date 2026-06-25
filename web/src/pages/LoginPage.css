@@ -54,3 +54,29 @@
   font-size: 0.75rem;
   color: #94a3b8;
 }
+
+.login-select {
+  appearance: auto;
+  cursor: pointer;
+}
+
+.login-tenant-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.login-back-link {
+  background: none;
+  border: none;
+  color: #0d9488;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  text-align: center;
+}
+
+.login-back-link:hover {
+  text-decoration: underline;
+}

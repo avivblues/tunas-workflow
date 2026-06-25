@@ -1,8 +1,20 @@
 import type { FastifyInstance } from 'fastify';
 import { sendSuccess } from '../../lib/response.js';
-import { getMe, login, loginSchema } from '../../master/user/auth.service.js';
+import {
+  getMe,
+  login,
+  loginSchema,
+  lookupTenantsForUsername,
+  lookupTenantsSchema,
+} from '../../master/user/auth.service.js';
 
 export async function registerAuthRoutes(app: FastifyInstance) {
+  app.post('/auth/lookup-tenants', async (request, reply) => {
+    const { username } = lookupTenantsSchema.parse(request.body);
+    const tenants = await lookupTenantsForUsername(username);
+    return sendSuccess(reply, { username, tenants });
+  });
+
   app.post('/auth/login', async (request, reply) => {
     const input = loginSchema.parse(request.body);
     const result = await login(input);

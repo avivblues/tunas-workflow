@@ -4,6 +4,10 @@ import { Badge } from '../../components/atoms/Badge';
 import { Button } from '../../components/atoms/Button';
 import { Card } from '../../components/atoms/Card';
 import {
+  PmCalendarScheduleModal,
+  type PmCalendarModalMode,
+} from '../../components/molecules/PmCalendarScheduleModal';
+import {
   getPmCalendar,
   getPmCompliance,
   type PmCalendar,
@@ -14,6 +18,14 @@ function monthLabel(date: Date) {
   return date.toLocaleString('default', { month: 'long', year: 'numeric' });
 }
 
+type ContextMenuState = {
+  x: number;
+  y: number;
+  day: number;
+  scheduleId?: string;
+  scheduleTitle?: string;
+};
+
 export function PmCalendarPage() {
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
@@ -21,6 +33,9 @@ export function PmCalendarPage() {
   });
   const [calendar, setCalendar] = useState<PmCalendar | null>(null);
   const [compliance, setCompliance] = useState<PmCompliance | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [modal, setModal] = useState<PmCalendarModalMode | null>(null);
+  const [message, setMessage] = useState('');
 
   const range = useMemo(() => {
     const from = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
@@ -28,14 +43,30 @@ export function PmCalendarPage() {
     return { from: from.toISOString(), to: to.toISOString() };
   }, [cursor]);
 
+  async function reloadCalendar() {
+    const [cal, comp] = await Promise.all([
+      getPmCalendar(range.from, range.to),
+      getPmCompliance(),
+    ]);
+    setCalendar(cal);
+    setCompliance(comp);
+  }
+
   useEffect(() => {
-    Promise.all([getPmCalendar(range.from, range.to), getPmCompliance()])
-      .then(([cal, comp]) => {
-        setCalendar(cal);
-        setCompliance(comp);
-      })
-      .catch(console.error);
+    reloadCalendar().catch(console.error);
   }, [range.from, range.to]);
+
+  useEffect(() => {
+    function closeMenu() {
+      setContextMenu(null);
+    }
+    window.addEventListener('click', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
+    return () => {
+      window.removeEventListener('click', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
+    };
+  }, []);
 
   const daysInMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
   const firstDay = new Date(cursor.getFullYear(), cursor.getMonth(), 1).getDay();
@@ -56,6 +87,43 @@ export function PmCalendarPage() {
     return { schedules, tasks };
   }
 
+  function openCreateModal(day: number) {
+    setModal({
+      type: 'create',
+      day,
+      month: cursor.getMonth() + 1,
+      year: cursor.getFullYear(),
+    });
+    setContextMenu(null);
+  }
+
+  function openRescheduleModal(day: number, scheduleId: string) {
+    setModal({
+      type: 'reschedule',
+      scheduleId,
+      day,
+      month: cursor.getMonth() + 1,
+      year: cursor.getFullYear(),
+    });
+    setContextMenu(null);
+  }
+
+  function handleCellContextMenu(e: React.MouseEvent, day: number) {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, day });
+  }
+
+  function handleScheduleContextMenu(
+    e: React.MouseEvent,
+    day: number,
+    scheduleId: string,
+    scheduleTitle: string,
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY, day, scheduleId, scheduleTitle });
+  }
+
   return (
     <div>
       <div
@@ -64,7 +132,9 @@ export function PmCalendarPage() {
       >
         <div>
           <h1>📅 PM Calendar</h1>
-          <p>Upcoming preventive maintenance schedules & generated tasks</p>
+          <p>
+            Klik kanan pada tanggal untuk tambah jadwal, atau pada jadwal existing untuk reschedule
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Link to="/engineering/pm-schedules">
@@ -75,6 +145,8 @@ export function PmCalendarPage() {
           </Link>
         </div>
       </div>
+
+      {message && <div className="alert alert-success">{message}</div>}
 
       {compliance && (
         <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
@@ -116,7 +188,7 @@ export function PmCalendarPage() {
           </Button>
         </div>
 
-        <div className="pm-calendar-grid">
+        <div className="pm-calendar-grid" onContextMenu={(e) => e.preventDefault()}>
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
             <div key={d} className="pm-calendar-head">
               {d}
@@ -130,10 +202,19 @@ export function PmCalendarPage() {
             const { schedules, tasks } = eventsForDay(day);
             const hasEvents = schedules.length > 0 || tasks.length > 0;
             return (
-              <div key={day} className={`pm-calendar-cell ${hasEvents ? 'has-events' : ''}`}>
+              <div
+                key={day}
+                className={`pm-calendar-cell ${hasEvents ? 'has-events' : ''}`}
+                onContextMenu={(e) => handleCellContextMenu(e, day)}
+              >
                 <div className="pm-calendar-day">{day}</div>
                 {schedules.map((s) => (
-                  <div key={s.id} className="pm-calendar-event schedule" title={s.title}>
+                  <div
+                    key={s.id}
+                    className="pm-calendar-event schedule"
+                    title={`${s.title} — klik kanan untuk reschedule`}
+                    onContextMenu={(e) => handleScheduleContextMenu(e, day, s.id, s.title)}
+                  >
                     📋 {s.title}
                   </div>
                 ))}
@@ -152,15 +233,63 @@ export function PmCalendarPage() {
           })}
         </div>
 
-        <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', fontSize: '0.8rem' }}>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', fontSize: '0.8rem', flexWrap: 'wrap' }}>
           <span>
-            <Badge variant="info">📋 Schedule</Badge> upcoming PM
+            <Badge variant="info">📋 Schedule</Badge> klik kanan → reschedule
           </span>
           <span>
             <Badge variant="success">🔧 Task</Badge> generated PM work
           </span>
+          <span style={{ color: '#64748b' }}>Klik kanan pada tanggal → tambah jadwal</span>
         </div>
       </Card>
+
+      {contextMenu && (
+        <div
+          className="pm-context-menu"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={(e) => e.stopPropagation()}
+          role="menu"
+        >
+          {contextMenu.scheduleId ? (
+            <>
+              <button
+                type="button"
+                className="pm-context-menu-item"
+                onClick={() => openRescheduleModal(contextMenu.day, contextMenu.scheduleId!)}
+              >
+                📅 Reschedule — {contextMenu.scheduleTitle}
+              </button>
+              <button
+                type="button"
+                className="pm-context-menu-item"
+                onClick={() => openCreateModal(contextMenu.day)}
+              >
+                ➕ Tambah jadwal PM (tanggal ini)
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="pm-context-menu-item"
+              onClick={() => openCreateModal(contextMenu.day)}
+            >
+              ➕ Tambah jadwal PM
+            </button>
+          )}
+        </div>
+      )}
+
+      {modal && (
+        <PmCalendarScheduleModal
+          mode={modal}
+          onClose={() => setModal(null)}
+          onSuccess={(msg) => {
+            setMessage(msg);
+            void reloadCalendar();
+          }}
+        />
+      )}
     </div>
   );
 }

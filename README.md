@@ -24,11 +24,14 @@ Platform Manajemen Pekerjaan Universal — **Configuration Driven Transaction En
 | AI Assistant | ✅ | Q&A maintenance, laporan harian/mingguan/bulanan |
 | Koneksi LLM per user | ✅ | ChatGPT (OpenAI) & Gemini — API key per user |
 | Mobile shell (Expo) | ✅ | Create, work execution, approval, AI, offline list cache |
-| Reporting engine (per app) | ✅ | `/api/report` + halaman Reports per app |
-| Dashboard metrik khusus per app | ✅ | App Insights per `app_code` di dashboard |
+| Reporting engine (per app) | ✅ | `/api/report` + halaman Reports per app (complaint, SLA, asset_usage) |
+| ISP Partner API (bundle) | ✅ | 4 modul, webhook + pull/push + report eksternal |
+| Swagger Integration API | ✅ | `/api/docs` — ISP & IoT |
+| Cross-app Analytics | ✅ | `/analytics` + `GET /api/report/cross-app` |
+| Dashboard metrik khusus per app | 🟡 | Dasar + App Insights; metrik mendalam per ISP/IT/ENG masih bertahap |
 | RabbitMQ / Redis (runtime) | 🔲 | Ada di Docker, belum dipakai di kode |
 | Email / push notification | 🔲 | In-app notification saja |
-| AI Root Cause & Recommendation | ✅ | Tab AI Insights di detail tiket + mobile hints |
+| AI Root Cause & histori teknisi | 🟡 | Tab **AI Insights** di detail tiket — kasus serupa, langkah teknisi, aset terkait; tren aset sering rusak masih perlu data historis lebih banyak |
 
 ---
 
@@ -38,6 +41,12 @@ Platform Manajemen Pekerjaan Universal — **Configuration Driven Transaction En
 |---|---|
 | **Web** | http://103.94.238.207:3050 |
 | **API Health** | http://103.94.238.207:3050/api/health |
+| **Swagger (Integration API)** | http://103.94.238.207:3050/api/docs |
+| **UAT checklist ISP** | [docs/ISP-UAT-CHECKLIST.md](./docs/ISP-UAT-CHECKLIST.md) |
+| **Production checklist** | [docs/PRODUCTION-CHECKLIST.md](./docs/PRODUCTION-CHECKLIST.md) |
+| **ISP Integration Guide** | [docs/ISP-INTEGRATION-GUIDE.md](./docs/ISP-INTEGRATION-GUIDE.md) |
+| **Integration API (ringkas)** | [docs/integration-api.md](./docs/integration-api.md) |
+| **Webhook / API Key (demo)** | `tunas-demo-webhook-secret-2024` |
 | **Tenant** | `01` |
 | **Admin** | `admin` / `admin123` |
 | **Manager** | `manager` / `manager123` |
@@ -84,7 +93,7 @@ npm run dev
 | RabbitMQ UI | http://localhost:15672 |
 | MinIO Console | http://localhost:9001 |
 
-Lihat juga: [getting-started.md](./docs/getting-started.md) · [architecture.md](./docs/architecture.md) · [api-conventions.md](./docs/api-conventions.md)
+Lihat juga: [getting-started.md](./docs/getting-started.md) · [architecture.md](./docs/architecture.md) · [api-conventions.md](./docs/api-conventions.md) · [integration-api.md](./docs/integration-api.md) · [ISP-INTEGRATION-GUIDE.md](./docs/ISP-INTEGRATION-GUIDE.md) · Swagger lokal: http://localhost:3000/api/docs
 
 ---
 
@@ -221,28 +230,46 @@ Semua response mengikuti format:
 | Method | Endpoint | Fungsi |
 |--------|----------|--------|
 | GET | `/api/health` | Health check |
+| GET | `/api/docs` | Swagger UI — Integration API (ISP & IoT) |
 | POST | `/api/auth/login` | Login JWT |
 | GET | `/api/apps` | Daftar aplikasi tenant |
 | POST/GET | `/api/transaction` | Buat / list transaksi |
 | GET | `/api/transaction/:id` | Detail + log + asset |
 | PATCH | `/api/transaction/:id/action` | Pindah proses / assign / close |
 | POST | `/api/transaction/:id/log` | Catat pekerjaan teknisi |
+| POST | `/api/attachment` | Upload foto / file (MinIO) |
 | GET | `/api/dashboard/:app_code` | Dashboard per aplikasi |
+| GET | `/api/report/:appCode` | Laporan internal per app |
+| GET | `/api/report/cross-app` | Analytics lintas aplikasi |
+| GET/POST | `/api/pm-schedule` | Jadwal preventive maintenance |
+| GET | `/api/notification` | Notifikasi in-app |
 | GET/PUT | `/api/menu` | Menu navigasi (admin) |
 | GET | `/api/ai/status` | Status AI assistant |
-| POST | `/api/ai/chat` | Tanya riwayat maintenance, SLA, dll. |
+| POST | `/api/ai/chat` | Tanya riwayat maintenance, SLA, aset, dll. |
 | POST | `/api/ai/report` | Laporan harian / mingguan / bulanan |
+| POST | `/api/ai/rca/:transactionId` | RCA + kasus serupa + saran teknisi |
+| GET | `/api/ai/similar/:transactionId` | Kasus serupa saja |
+| GET | `/api/ai/suggestions/:transactionId` | Saran langkah teknisi dari historis |
 | GET/PUT/DELETE | `/api/ai/llm-config` | Koneksi ChatGPT / Gemini per user |
-| GET/POST | `/api/connector` | Integrasi eksternal |
+| GET/POST | `/api/connector` | Integrasi eksternal (marketplace) |
+| GET | `/api/integration/status` | Status connector + MQTT (auth) |
+| POST | `/api/integration/isp/:tenant/webhook` | Inbound ISP — create ticket (multi `app_code`) |
+| GET/PATCH | `/api/integration/isp/:tenant/tickets/...` | ISP Partner API pull/push |
+| GET | `/api/integration/isp/:tenant/report` | Laporan untuk sistem ISP eksternal |
+| GET | `/api/integration/isp/:tenant/reports/bundle` | Ketiga laporan ISP sekaligus |
+| POST | `/api/integration/iot/:tenant/work-order` | WO manual dari Tunas IoT (operator) |
+| GET | `/api/integration/iot/:tenant/mqtt` | Referensi payload MQTT multi-sensor |
 | GET/POST | `/api/asset` | CRUD asset |
 
 ---
 
 ## Dashboard & Reporting
 
+**Prinsip:** Setiap aplikasi (`ISP_TICKET`, `IT_SUPPORT`, `ENG_WO`, dll.) punya **dashboard** dan **laporan** sendiri. Metrik dan kolom laporan **bervariasi per app** — dikonfigurasi lewat `app_code` dan kebutuhan divisi (misal ISP: komplain & SLA; Engineering: sparepart & PM).
+
 ### Dashboard (saat ini)
 
-`GET /api/dashboard/:app_code` mengembalikan metrik umum:
+`GET /api/dashboard/:app_code` mengembalikan metrik umum per aplikasi:
 
 - Open / closed / rejected
 - SLA at risk & breach
@@ -250,12 +277,12 @@ Semua response mengikuti format:
 - KPI per teknisi
 - Breakdown by process & priority
 
-Dashboard web menampilkan metrik di atas untuk semua aplikasi. **Metrik khusus per app** (lihat target di bawah) masih dalam roadmap.
+Web menampilkan **App Dashboard** per modul (`/isp`, `/it-support`, `/engineering`, …) dengan App Insights. Metrik mendalam per divisi (lihat tabel target) masih dilengkapi bertahap.
 
 ### Target Dashboard per Aplikasi
 
-| App | Target (README / visi) | Status |
-|-----|------------------------|--------|
+| App | Target | Status |
+|-----|--------|--------|
 | IT Support | Top Problem, Asset Failure Trend, Critical Ticket | 🔲 |
 | ISP | Technician Position, Repeated Complaint, Customer Down | 🟡 Map ada, GPS belum |
 | Engineering | Downtime, MTBF, PM Compliance, Sparepart Cost | 🟡 PM compliance di backend |
@@ -263,26 +290,40 @@ Dashboard web menampilkan metrik di atas untuk semua aplikasi. **Metrik khusus p
 
 ### Reporting
 
-| Jenis | Status |
-|-------|--------|
-| Laporan operasional via AI (harian/mingguan/bulanan) | ✅ |
-| Halaman report per app (SLA, aging, sparepart usage) | 🔲 |
-| Export PDF / Excel | 🔲 |
+| Jenis | Status | Catatan |
+|-------|--------|---------|
+| Laporan operasional via AI (harian/mingguan/bulanan) | ✅ | `POST /api/ai/report` |
+| Halaman report per app (web) | ✅ | complaint, SLA, asset_usage — period bulan/tahun |
+| Report untuk sistem ISP eksternal | ✅ | `GET /api/integration/isp/{tenant}/report` |
+| Cross-app analytics | ✅ | `/analytics` |
+| Kolom & metrik report khusus per tenant/app | 🟡 | Variable — disesuaikan kebutuhan ISP / divisi |
+| Export PDF / Excel | 🔲 | — |
 
 ---
 
 ## AI Assistant
 
-Modul AI aktif di `backend/src/integration/ai/` dan halaman web `/ai-assistant`, `/ai-settings`.
+Modul AI di `backend/src/integration/ai/` — halaman web `/ai-assistant`, `/ai-settings`, dan tab **AI Insights** di setiap detail transaksi.
 
-### Fitur yang sudah ada
+### Yang bisa dilakukan sekarang (penting untuk teknisi & ISP support)
+
+| Kebutuhan | Cara di Tunas Workflow | Status |
+|-----------|------------------------|--------|
+| **Aset / alat apa yang sering bermasalah?** | `POST /api/ai/chat` — tanya riwayat transaksi + `transaction_asset`; RCA menampilkan `assetCodes` dari kasus serupa | 🟡 Akurat jika work log & link aset terisi konsisten |
+| **Bagaimana teknisi menangani kasus serupa sebelumnya?** | Tab **AI Insights** → *Similar Cases* + *Technician Suggestions* — langkah dari `transaction_log` kasus closed | ✅ |
+| **Root cause & rekomendasi perbaikan** | Rule-based (keyword: network, power, bearing, ONT, dll.) + optional LLM | ✅ |
+| **Estimasi waktu penyelesaian** | Rata-rata jam resolusi dari kasus serupa | ✅ |
+| **Laporan cepat NOC/manager** | `POST /api/ai/report` — harian / mingguan / bulanan | ✅ |
+
+**Cara pakai (teknisi / ISP support):** Buka detail tiket → tab **AI Insights** → sistem mencari kasus serupa (skor berdasarkan aset sama + kata kunci masalah) → tampilkan langkah yang pernah ditulis teknisi di work log sebelumnya.
+
+### Fitur pendukung
 
 | Fitur | Deskripsi |
 |-------|-----------|
-| **AI Assistant** | Q&A riwayat maintenance, tiket open, SLA, sparepart |
-| **Laporan cepat** | Generate laporan harian, mingguan, bulanan |
-| **Koneksi LLM per user** | User/client hubungkan API key ChatGPT atau Gemini sendiri |
-| **Smart Analytics** | Jawaban rule-based dari data transaksi jika belum ada LLM |
+| **AI Assistant (chat)** | Q&A riwayat maintenance, tiket open, SLA, sparepart |
+| **Koneksi LLM per user** | API key ChatGPT atau Gemini — analisis RCA lebih kaya |
+| **Smart Analytics** | Fallback tanpa API key — rule-based dari data transaksi |
 
 ### Mode LLM
 
@@ -290,11 +331,12 @@ Modul AI aktif di `backend/src/integration/ai/` dan halaman web `/ai-assistant`,
 2. **Platform LLM** — `OPENAI_API_KEY` di server (opsional)
 3. **Smart Analytics** — fallback tanpa API key
 
-### Roadmap AI (Phase 8)
+### Roadmap AI (berikutnya)
 
-- Root Cause Analysis dari `transaction_log` historis
-- Rekomendasi perbaikan berdasarkan kasus serupa
-- AI Technician Assistant proaktif
+- **Ranking aset paling sering rusak** per lokasi / periode (dashboard trend, bukan hanya per-tiket)
+- Rekomendasi sparepart otomatis dari frekuensi `transaction_asset`
+- AI proaktif saat create ticket (suggest sebelum teknisi buka detail)
+- Mobile: panel AI Insights penuh (saat ini hints terbatas)
 
 ---
 
@@ -353,7 +395,7 @@ External System → Connector → Mapping → Transaction / Asset
 | Odoo (asset sync + scheduled worker) | ✅ | Perlu konfigurasi tenant |
 | Custom API (REST asset pull) | ✅ | Perlu base URL + token |
 | Google Calendar (PM, Vehicle) | ✅ | Perlu service account |
-| ISP Billing webhook + Partner API | ✅ | Panduan: `docs/ISP-INTEGRATION-GUIDE.md` |
+| ISP Billing webhook + Partner API | ✅ | [ISP-INTEGRATION-GUIDE.md](./docs/ISP-INTEGRATION-GUIDE.md) · Swagger `/api/docs` |
 | Tunas IoT (HTTP webhook + MQTT bridge) | ✅ | Demo secret di seed tenant `01` |
 | Integration worker + event queue | ✅ | `INTEGRATION_WORKER_ENABLED=true` |
 | Slack / Teams | ✅ | Perlu webhook URL |
@@ -427,12 +469,25 @@ Phase 0  Foundation              ✅
 Phase 1  Core Platform             ✅
 Phase 2  Transaction Engine        ✅
 Phase 3  Technician Work & Asset   ✅
-Phase 4  SLA & Dashboard           🟡 (dasar ada, metrik khusus belum)
+Phase 4  SLA & Dashboard           🟡 (dasar per app ada; metrik mendalam ISP/IT/ENG bertahap)
 Phase 5  Engineering & PM          ✅
-Phase 6  Integrasi                 ✅ (worker, IoT/ISP webhook, Odoo/Custom API sync, MQTT opsional)
+Phase 6  Integrasi                 ✅ (ISP bundle, Partner API, Swagger, IoT MQTT multi-sensor, Odoo sync)
 Phase 7  All Apps + Mobile        ✅ (web lengkap, mobile shell + work/approval/AI)
-Phase 8  AI & Scale                ✅ (RCA, cross-app analytics, REDI-OS stub)
+Phase 8  AI & Scale                🟡 (RCA + kasus serupa ✅; tren aset sering rusak & AI proaktif 🔲)
 ```
+
+### Masih terbuka (prioritas berikutnya)
+
+| Item | Status |
+|------|--------|
+| Email / FCM push notification | 🔲 |
+| RabbitMQ / Redis aktif di runtime | 🔲 |
+| Export PDF / Excel report | 🔲 (CSV ✅ di web Reports) |
+| ISP UAT script + checklist | ✅ | `scripts/isp-partner-api-test.sh` + `docs/ISP-UAT-CHECKLIST.md` |
+| Production checklist | ✅ | `docs/PRODUCTION-CHECKLIST.md` |
+| ISP callback outbound production | 🔲 | Pull-only untuk development |
+| GPS teknisi di ISP Map | 🟡 |
+| Dashboard ranking aset sering rusak | 🔲 |
 
 ---
 

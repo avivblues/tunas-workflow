@@ -3,6 +3,9 @@ import type { FormEvent } from 'react';
 import { Badge } from '../atoms/Badge';
 import { Button } from '../atoms/Button';
 import { Input } from '../atoms/Input';
+import { ConfirmSaveModal } from '../molecules/ConfirmSaveModal';
+import { FormFeedback } from '../molecules/FormFeedback';
+import { getErrorMessage } from '../../services/api-client';
 import {
   getIotSettings,
   updateIotSettings,
@@ -43,11 +46,14 @@ export function IotConnectorPanel({
 }: {
   connectorId: string;
   mqttConnected?: boolean;
-  onSaved?: (message: string) => void;
+  onSaved?: (message: string) => void | Promise<void>;
 }) {
   const [settings, setSettings] = useState<IotConnectorSettings | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmKind, setConfirmKind] = useState<'mqtt' | 'thresholds'>('mqtt');
 
   async function load() {
     const data = await getIotSettings(connectorId);
@@ -58,24 +64,48 @@ export function IotConnectorPanel({
     load().catch((err) => setError(err instanceof Error ? err.message : 'Load failed'));
   }, [connectorId]);
 
-  async function save(partial: Parameters<typeof updateIotSettings>[1]) {
+  async function save(partial: Parameters<typeof updateIotSettings>[1], successMsg: string) {
     setBusy(true);
     setError('');
+    setSuccess('');
     try {
       const updated = await updateIotSettings(connectorId, partial);
       setSettings(updated);
-      onSaved?.('Tunas IoT settings saved');
+      setSuccess(successMsg);
+      setConfirmOpen(false);
+      await onSaved?.(successMsg);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed');
+      setError(getErrorMessage(err, 'Gagal menyimpan'));
     } finally {
       setBusy(false);
     }
   }
 
-  async function handleConfigSubmit(e: FormEvent) {
+  function handleConfigReview(e: FormEvent) {
     e.preventDefault();
     if (!settings) return;
-    await save({ config: settings.config });
+    setError('');
+    setConfirmKind('mqtt');
+    setConfirmOpen(true);
+  }
+
+  function handleThresholdReview() {
+    if (!settings) return;
+    setError('');
+    setConfirmKind('thresholds');
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirmSave() {
+    if (!settings) return;
+    if (confirmKind === 'mqtt') {
+      await save({ config: settings.config }, 'Konfigurasi MQTT berhasil disimpan');
+    } else {
+      await save(
+        { mapping: { thresholds: settings.mapping.thresholds ?? [] } },
+        'Aturan threshold berhasil disimpan',
+      );
+    }
   }
 
   async function toggleDomain(row: IotDomainLinkRow) {
@@ -85,22 +115,21 @@ export function IotConnectorPanel({
       tunasiot_hierarchy: link.tunasiot_hierarchy,
       enabled: link.domain_code === row.domain_code ? !link.enabled : link.enabled,
     }));
-    await save({ mapping: { domain_links: links } });
-  }
-
-  async function saveThresholds(thresholds: IotThresholdRule[]) {
-    await save({ mapping: { thresholds } });
+    await save({ mapping: { domain_links: links } }, 'Domain link diperbarui');
   }
 
   if (!settings) {
     return <div style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>Loading IoT settings…</div>;
   }
 
+  const thresholdCount = settings.mapping.thresholds?.length ?? 0;
+
   return (
+    <>
     <details className="connector-panel-details" open>
       <summary className="connector-panel-summary">Tunas IoT MQTT &amp; Threshold Settings</summary>
       <div className="connector-panel-body iot-connector-panel">
-      {error && <div style={{ color: 'var(--color-danger, #c0392b)', fontSize: '0.85rem' }}>{error}</div>}
+      <FormFeedback success={success && !confirmOpen ? success : ''} error={error && !confirmOpen ? error : ''} />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
         <strong>MQTT Bridge</strong>
@@ -114,7 +143,7 @@ export function IotConnectorPanel({
         </span>
       </div>
 
-      <form onSubmit={handleConfigSubmit} style={{ display: 'grid', gap: '0.65rem' }}>
+      <form onSubmit={handleConfigReview} style={{ display: 'grid', gap: '0.65rem' }}>
         <Input
           label="Tunas IoT Dashboard URL"
           value={settings.config.tunasiot_base_url ?? ''}
@@ -175,8 +204,8 @@ export function IotConnectorPanel({
           />
         </div>
 
-        <Button type="submit" disabled={busy} variant="secondary">
-          Save MQTT config
+        <Button type="submit" loading={busy} disabled={busy} variant="secondary">
+          Simpan MQTT config →
         </Button>
       </form>
 
@@ -229,8 +258,16 @@ export function IotConnectorPanel({
       <div>
         <strong style={{ display: 'block', marginBottom: '0.5rem' }}>MQTT telemetry payload (multi-sensor)</strong>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', margin: '0 0 0.5rem' }}>
-          Topic: <code>tunas/&#123;tenant&#125;/L01/Z01/telemetry</code> atau{' '}
-          <code>tunas/&#123;tenant&#125;/telemetry</code> + <code>hierarchy_code</code> di body.
+          <strong>Mode production:</strong> MQTT auto-WO hanya untuk severity{' '}
+          <code>CRITICAL</code> (atur <em>Minimum severity</em> di bawah). Alert MEDIUM/HIGH — operator
+          konfirmasi manual lewat Tunas IoT → HTTP{' '}
+          <code>POST /integration/iot/&#123;tenant&#125;/work-order</code>.
+        </p>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', margin: '0 0 0.5rem' }}>
+          API docs (Swagger):{' '}
+          <a href="/api/docs" target="_blank" rel="noreferrer">
+            /api/docs
+          </a>
         </p>
         <pre className="isp-panel-code" style={{ fontSize: '0.78rem' }}>
 {`{
@@ -243,9 +280,17 @@ export function IotConnectorPanel({
   "power_1": 0
 }`}
         </pre>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', margin: '0 0 0.5rem' }}>
+          Topic: <code>tunas/&#123;tenant&#125;/L01/Z01/telemetry</code> atau{' '}
+          <code>tunas/&#123;tenant&#125;/telemetry</code> + <code>hierarchy_code</code> di body. Referensi
+          MQTT: <code>GET /api/integration/iot/&#123;tenant&#125;/mqtt</code> atau Swagger{' '}
+          <a href="/api/docs" target="_blank" rel="noreferrer">
+            /api/docs
+          </a>
+        </p>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', margin: '0.5rem 0 0' }}>
-          <code>device_id</code> = <code>asset_code</code> di master asset Tunas Workflow. Gauge &amp; add device
-          dikelola di dashboard Tunas IoT; Workflow menerima telemetry dan membuat WO saat threshold terpenuhi.
+          <code>device_id</code> = <code>asset_code</code> di master asset. Hanya rule{' '}
+          <code>CRITICAL</code> yang enabled memicu auto-WO via MQTT.
         </p>
       </div>
 
@@ -365,12 +410,41 @@ export function IotConnectorPanel({
           style={{ marginTop: '0.5rem' }}
           disabled={busy}
           variant="secondary"
-          onClick={() => saveThresholds(settings.mapping.thresholds ?? [])}
+          onClick={handleThresholdReview}
         >
-          Save threshold rules
+          Simpan threshold rules →
         </Button>
       </div>
       </div>
     </details>
+
+    <ConfirmSaveModal
+      open={confirmOpen}
+      title={confirmKind === 'mqtt' ? 'Simpan Konfigurasi MQTT' : 'Simpan Aturan Threshold'}
+      summary={
+        confirmKind === 'mqtt' ? (
+          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+            <li>URL: {settings.config.tunasiot_base_url || '—'}</li>
+            <li>Auto WO: {settings.config.mqtt_auto_wo_enabled ? 'Aktif' : 'Nonaktif'}</li>
+            <li>Min severity: {settings.config.min_severity ?? 'MEDIUM'}</li>
+            <li>Cooldown: {settings.config.cooldown_minutes ?? 30} menit</li>
+          </ul>
+        ) : (
+          <p style={{ margin: 0 }}>
+            Simpan <strong>{thresholdCount}</strong> aturan threshold untuk auto work order.
+          </p>
+        )
+      }
+      busy={busy}
+      error={confirmOpen ? error : ''}
+      onConfirm={() => void handleConfirmSave()}
+      onCancel={() => {
+        if (!busy) {
+          setConfirmOpen(false);
+          setError('');
+        }
+      }}
+    />
+    </>
   );
 }

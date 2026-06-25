@@ -5,9 +5,11 @@ import { Button } from '../atoms/Button';
 import { Card } from '../atoms/Card';
 import { Input } from '../atoms/Input';
 import { AssetSelector } from '../molecules/AssetSelector';
+import { ConfirmSaveModal } from '../molecules/ConfirmSaveModal';
 import { DomainPicker } from '../molecules/DomainPicker';
 import { PhotoUpload } from '../molecules/PhotoUpload';
 import type { AppUiConfig } from '../../config/apps';
+import { getErrorMessage } from '../../services/api-client';
 import { uploadAttachment } from '../../services/attachment.service';
 import { createTransaction } from '../../services/transaction.service';
 
@@ -24,13 +26,19 @@ export function CreateTransactionPage({ config }: { config: AppUiConfig }) {
   const [photos, setPhotos] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function setField(key: string, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleSubmit(e: FormEvent) {
+  function handleReview(e: FormEvent) {
     e.preventDefault();
+    setError('');
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirmSubmit() {
     setError('');
     setLoading(true);
 
@@ -92,11 +100,18 @@ export function CreateTransactionPage({ config }: { config: AppUiConfig }) {
       });
       navigate(`/transactions/${trx.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create');
+      setError(getErrorMessage(err, 'Gagal membuat permintaan'));
+      setConfirmOpen(false);
     } finally {
       setLoading(false);
     }
   }
+
+  const titleField = config.fields.find((f) => f.key === 'title' || f.key === 'subject');
+  const summaryTitle =
+    (titleField ? form[titleField.key] : '') ||
+    form[config.fields.find((f) => f.type === 'textarea')?.key ?? '']?.slice(0, 80) ||
+    config.itemLabel;
 
   return (
     <div>
@@ -105,10 +120,10 @@ export function CreateTransactionPage({ config }: { config: AppUiConfig }) {
         <p>{config.createSubtitle}</p>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && !confirmOpen && <div className="alert alert-error">{error}</div>}
 
       <Card title="Details">
-        <form onSubmit={handleSubmit} className="form-grid">
+        <form onSubmit={handleReview} className="form-grid">
           {config.fields.map((field) => {
             if (field.type === 'domain-picker') {
               return (
@@ -235,15 +250,41 @@ export function CreateTransactionPage({ config }: { config: AppUiConfig }) {
             </select>
           </div>
           <div className="form-actions">
-            <Button type="submit" loading={loading}>
-              Submit
-            </Button>
+            <Button type="submit">Lanjut Konfirmasi →</Button>
             <Button type="button" variant="secondary" onClick={() => navigate(config.listPath)}>
               Cancel
             </Button>
           </div>
         </form>
       </Card>
+
+      <ConfirmSaveModal
+        open={confirmOpen}
+        title={`Kirim ${config.itemLabel}?`}
+        description="Periksa ringkasan sebelum mengirim permintaan."
+        summary={
+          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+            <li>
+              Aplikasi: <strong>{config.appCode}</strong>
+            </li>
+            <li>
+              Ringkasan: <strong>{summaryTitle || '—'}</strong>
+            </li>
+            <li>Prioritas: {priority}</li>
+            {photos.length > 0 && <li>Lampiran: {photos.length} foto</li>}
+          </ul>
+        }
+        confirmLabel="Kirim"
+        busy={loading}
+        error={error}
+        onConfirm={() => void handleConfirmSubmit()}
+        onCancel={() => {
+          if (!loading) {
+            setConfirmOpen(false);
+            setError('');
+          }
+        }}
+      />
     </div>
   );
 }

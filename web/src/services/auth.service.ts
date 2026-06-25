@@ -23,6 +23,21 @@ export interface LoginResponse {
   token: string;
 }
 
+export interface TenantLoginOption {
+  tenantCode: string;
+  tenantName: string;
+  fullName: string;
+  roleCode: string | null;
+  roleName: string | null;
+}
+
+export function lookupTenantsForUsername(username: string) {
+  return apiRequest<{ username: string; tenants: TenantLoginOption[] }>('/auth/lookup-tenants', {
+    method: 'POST',
+    body: JSON.stringify({ username }),
+  });
+}
+
 export function login(input: LoginInput) {
   return apiRequest<LoginResponse>('/auth/login', {
     method: 'POST',

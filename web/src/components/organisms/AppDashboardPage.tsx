@@ -69,16 +69,27 @@ function AppSpecificMetrics({ data }: { data: AppDashboard }) {
     const x = m.metrics;
     return (
       <div className="app-metrics-grid">
+        <Card title="Komplain Bulan Ini">
+          <div className="stat-value">{x.complaintsThisMonth}</div>
+        </Card>
+        <Card title="7 Hari Terakhir">
+          <div className="stat-value">{x.complaintsLast7Days}</div>
+        </Card>
         <Card title="Customer Down (High)">
           <div className="stat-value stat-danger">{x.customerDown}</div>
+        </Card>
+        <Card title="SLA Breach (Open)">
+          <div className="stat-value stat-warning">{x.slaBreachOpen}</div>
         </Card>
         <Card title="Avg Resolution (h)">
           <div className="stat-value">{x.avgResolutionHours}h</div>
         </Card>
-        <MetricsList title="Area Problems" items={x.byArea} />
-        <Card title="Repeated Complaints">
+        <MetricsList title="Tiket Open per Proses" items={x.openByProcess} />
+        <MetricsList title="Jenis Event" items={x.byEvent} />
+        <MetricsList title="Area Bermasalah" items={x.byArea} />
+        <Card title="Pelanggan Repeat Complaint">
           {x.repeatedComplaints.length === 0 ? (
-            <p style={{ color: '#64748b' }}>No repeated complaints</p>
+            <p style={{ color: '#64748b' }}>Belum ada pelanggan dengan komplain berulang</p>
           ) : (
             <ul className="app-metrics-list">
               {x.repeatedComplaints.map((r) => (

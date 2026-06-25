@@ -27,6 +27,7 @@ import {
 } from '../../services/integration.service';
 import { IotConnectorPanel } from '../../components/organisms/IotConnectorPanel';
 import { IspConnectorPanel } from '../../components/organisms/IspConnectorPanel';
+import { FormFeedback } from '../../components/molecules/FormFeedback';
 import './IntegrationMarketplacePage.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
@@ -202,6 +203,7 @@ export function IntegrationMarketplacePage() {
   const [message, setMessage] = useState('');
   const [configuring, setConfiguring] = useState<ConnectorCatalogItem | null>(null);
   const [configForm, setConfigForm] = useState<Record<string, string>>({});
+  const [installError, setInstallError] = useState('');
   const [busy, setBusy] = useState(false);
   const [integrationStatus, setIntegrationStatus] = useState<IntegrationStatus | null>(null);
   const [expandedConnectorId, setExpandedConnectorId] = useState<string | null>(null);
@@ -310,6 +312,7 @@ export function IntegrationMarketplacePage() {
       else defaults[field.key] = '';
     }
     setConfigForm(defaults);
+    setInstallError('');
     setConfiguring(item);
   }
 
@@ -335,17 +338,18 @@ export function IntegrationMarketplacePage() {
     e.preventDefault();
     if (!configuring) return;
     setBusy(true);
+    setInstallError('');
     try {
       await installConnector({
         type: configuring.type,
         name: configuring.name,
         config: configForm,
       });
-      setMessage(`${configuring.name} installed`);
+      setMessage(`${configuring.name} berhasil di-install`);
       setConfiguring(null);
       await load();
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Install failed');
+      setInstallError(err instanceof Error ? err.message : 'Install gagal');
     } finally {
       setBusy(false);
     }
@@ -749,7 +753,17 @@ export function IntegrationMarketplacePage() {
                         <IotConnectorPanel
                           connectorId={connector.id}
                           mqttConnected={integrationStatus?.mqtt?.connected}
-                          onSaved={(msg) => setMessage(msg)}
+                          onSaved={async (msg) => {
+                            setMessage(msg);
+                            await load();
+                            closeConnectorConfig();
+                            requestAnimationFrame(() => {
+                              installedSectionRef.current?.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start',
+                              });
+                            });
+                          }}
                         />
                       )}
 
@@ -757,9 +771,16 @@ export function IntegrationMarketplacePage() {
                         <IspConnectorPanel
                           connector={connector}
                           tenantCode={tenantCode}
-                          onSaved={(msg) => {
+                          onSaved={async (msg) => {
                             setMessage(msg);
-                            load().catch(console.error);
+                            await load();
+                            closeConnectorConfig();
+                            requestAnimationFrame(() => {
+                              installedSectionRef.current?.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start',
+                              });
+                            });
                           }}
                         />
                       )}
@@ -919,6 +940,7 @@ export function IntegrationMarketplacePage() {
               onSubmit={handleConfiguredInstall}
               style={{ display: 'grid', gap: '0.75rem', minWidth: 360 }}
             >
+              <FormFeedback error={installError} />
               {configuring.configFields.map((field) =>
                 field.type === 'textarea' ? (
                   <label key={field.key} className="input-group">
@@ -951,7 +973,7 @@ export function IntegrationMarketplacePage() {
                 <Button type="button" variant="ghost" onClick={() => setConfiguring(null)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={busy}>
+                <Button type="submit" loading={busy} disabled={busy}>
                   Install
                 </Button>
               </div>

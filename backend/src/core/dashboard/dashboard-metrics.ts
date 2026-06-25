@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import { getResolutionHours } from '../sla/sla.service.js';
+import { computeSlaStatus, getResolutionHours } from '../sla/sla.service.js';
 
 type TxWithRelations = Prisma.TransactionHeaderGetPayload<{
   include: { details: true; assets: { include: { asset: true } }; logs: true };
@@ -123,10 +123,30 @@ export async function buildIspMetrics(transactions: TxWithRelations[]) {
   const open = transactions.filter((t) => t.status === 'OPEN');
   const customerDown = open.filter((t) => t.priority === 'HIGH' || t.priority === 'CRITICAL').length;
 
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const complaintsThisMonth = transactions.filter((t) => t.createdAt >= monthStart).length;
+  const complaintsLast7Days = transactions.filter((t) => t.createdAt >= last7Days).length;
+
+  let slaBreachOpen = 0;
+  for (const t of open) {
+    if (computeSlaStatus(t.createdAt, t.closedAt, t.priority, t.status) === 'BREACHED') {
+      slaBreachOpen++;
+    }
+  }
+
   const byArea = groupCount(transactions.map((t) => detailValue(t, 'area') ?? 'Unknown')).slice(
     0,
     8,
   );
+
+  const byEvent = groupCount(
+    transactions.map((t) => detailValue(t, 'source_event') ?? 'CUSTOMER_COMPLAINT'),
+  ).slice(0, 6);
+
+  const openByProcess = groupCount(open.map((t) => t.currentProcess)).slice(0, 8);
 
   const customerCounts = transactions.reduce<Record<string, number>>((acc, t) => {
     const id = detailValue(t, 'customer_id') ?? detailValue(t, 'customer_name');
@@ -141,18 +161,27 @@ export async function buildIspMetrics(transactions: TxWithRelations[]) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
 
+  const closedWithDates = transactions.filter((t) => t.closedAt);
   const avgResolution =
-    transactions.filter((t) => t.closedAt).length > 0
+    closedWithDates.length > 0
       ? Math.round(
-          (transactions
-            .filter((t) => t.closedAt)
-            .reduce((s, t) => s + getResolutionHours(t.createdAt, t.closedAt!), 0) /
-            transactions.filter((t) => t.closedAt).length) *
+          (closedWithDates.reduce((s, t) => s + getResolutionHours(t.createdAt, t.closedAt!), 0) /
+            closedWithDates.length) *
             10,
         ) / 10
       : 0;
 
-  return { customerDown, byArea, repeatedComplaints, avgResolutionHours: avgResolution };
+  return {
+    customerDown,
+    complaintsThisMonth,
+    complaintsLast7Days,
+    slaBreachOpen,
+    byArea,
+    byEvent,
+    openByProcess,
+    repeatedComplaints,
+    avgResolutionHours: avgResolution,
+  };
 }
 
 export function buildGaMetrics(transactions: TxWithRelations[]) {

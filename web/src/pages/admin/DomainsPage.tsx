@@ -4,8 +4,11 @@ import { Badge } from '../../components/atoms/Badge';
 import { Button } from '../../components/atoms/Button';
 import { Card } from '../../components/atoms/Card';
 import { Input } from '../../components/atoms/Input';
+import { ConfirmSaveModal } from '../../components/molecules/ConfirmSaveModal';
+import { FormFeedback } from '../../components/molecules/FormFeedback';
 import type { DomainNode } from '../../services/master.service';
 import { createDomain, listDomains } from '../../services/master.service';
+import { getErrorMessage } from '../../services/api-client';
 
 export function DomainsPage() {
   const [domains, setDomains] = useState<DomainNode[]>([]);
@@ -19,6 +22,9 @@ export function DomainsPage() {
     longitude: '',
   });
   const [message, setMessage] = useState('');
+  const [formError, setFormError] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function load() {
     setDomains(await listDomains());
@@ -28,20 +34,34 @@ export function DomainsPage() {
     load().catch(console.error);
   }, []);
 
-  async function handleSubmit(e: FormEvent) {
+  function handleReview(e: FormEvent) {
     e.preventDefault();
-    await createDomain({
-      domainCode: form.domainCode,
-      name: form.name,
-      type: form.type,
-      parentId: form.parentId || undefined,
-      latitude: form.latitude ? Number(form.latitude) : undefined,
-      longitude: form.longitude ? Number(form.longitude) : undefined,
-    });
-    setMessage('Domain created');
-    setShowForm(false);
-    setForm({ domainCode: '', name: '', type: 'LOCATION', parentId: '', latitude: '', longitude: '' });
-    await load();
+    setFormError('');
+    setConfirmOpen(true);
+  }
+
+  async function handleConfirmSave() {
+    setLoading(true);
+    setFormError('');
+    try {
+      await createDomain({
+        domainCode: form.domainCode,
+        name: form.name,
+        type: form.type,
+        parentId: form.parentId || undefined,
+        latitude: form.latitude ? Number(form.latitude) : undefined,
+        longitude: form.longitude ? Number(form.longitude) : undefined,
+      });
+      setMessage(`Domain "${form.name}" berhasil dibuat`);
+      setConfirmOpen(false);
+      setShowForm(false);
+      setForm({ domainCode: '', name: '', type: 'LOCATION', parentId: '', latitude: '', longitude: '' });
+      await load();
+    } catch (err) {
+      setFormError(getErrorMessage(err, 'Gagal membuat domain'));
+    } finally {
+      setLoading(false);
+    }
   }
 
   const typeVariant: Record<string, 'info' | 'warning' | 'default'> = {
@@ -49,6 +69,8 @@ export function DomainsPage() {
     ZONE: 'warning',
     DEPARTMENT: 'default',
   };
+
+  const parentLabel = domains.find((d) => d.id === form.parentId);
 
   return (
     <div>
@@ -68,7 +90,8 @@ export function DomainsPage() {
         }
       >
         {showForm && (
-          <form onSubmit={handleSubmit} className="form-grid" style={{ marginBottom: '1.5rem' }}>
+          <form onSubmit={handleReview} className="form-grid" style={{ marginBottom: '1.5rem' }}>
+            <FormFeedback error={formError} />
             <Input
               label="Domain Code"
               value={form.domainCode}
@@ -123,7 +146,9 @@ export function DomainsPage() {
               onChange={(e) => setForm({ ...form, longitude: e.target.value })}
               placeholder="106.8456"
             />
-            <Button type="submit">Create Domain</Button>
+            <div className="form-actions">
+              <Button type="submit">Lanjut Konfirmasi →</Button>
+            </div>
           </form>
         )}
 
@@ -156,6 +181,33 @@ export function DomainsPage() {
           </tbody>
         </table>
       </Card>
+
+      <ConfirmSaveModal
+        open={confirmOpen}
+        title="Buat Domain Baru"
+        summary={
+          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+            <li>
+              Kode: <strong>{form.domainCode}</strong>
+            </li>
+            <li>
+              Nama: <strong>{form.name}</strong>
+            </li>
+            <li>Tipe: {form.type}</li>
+            {parentLabel && (
+              <li>
+                Parent: {parentLabel.domainCode} — {parentLabel.name}
+              </li>
+            )}
+          </ul>
+        }
+        busy={loading}
+        error={formError}
+        onConfirm={() => void handleConfirmSave()}
+        onCancel={() => {
+          if (!loading) setConfirmOpen(false);
+        }}
+      />
     </div>
   );
 }

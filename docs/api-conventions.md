@@ -77,7 +77,7 @@ Response includes:
 ## Report API
 
 ```
-GET /api/report/:appCode?type=aging|sla|technician|sparepart&days=30
+GET /api/report/:appCode?type=complaint|sla|asset_usage&period=month|year&year=&month=
 ```
 
 | type | Output |

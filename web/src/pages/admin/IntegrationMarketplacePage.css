@@ -470,6 +470,10 @@
   font-size: 0.9rem;
 }
 
+.isp-panel-form .alert {
+  margin: 0;
+}
+
 .marketplace-empty {
   padding: 2rem;
   text-align: center;

@@ -4,6 +4,7 @@ import { Badge } from '../../components/atoms/Badge';
 import { Button } from '../../components/atoms/Button';
 import { Card } from '../../components/atoms/Card';
 import { Input } from '../../components/atoms/Input';
+import { ConfirmSaveModal } from '../../components/molecules/ConfirmSaveModal';
 import type { AppDetail } from '../../services/app.service';
 import {
   addProcess,
@@ -13,6 +14,7 @@ import {
   listAppConfig,
 } from '../../services/app.service';
 import { listRoles, type Role } from '../../services/master.service';
+import { getErrorMessage } from '../../services/api-client';
 import './admin-settings.css';
 
 interface AppProcessPanelProps {
@@ -38,6 +40,8 @@ export function AppProcessPanel({ selectedAppId }: AppProcessPanelProps) {
     toProcess: '',
     roleCode: '',
   });
+  const [confirmKind, setConfirmKind] = useState<'process' | 'routing' | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const selected = apps.find((a) => a.id === selectedAppId);
 
@@ -69,37 +73,46 @@ export function AppProcessPanel({ selectedAppId }: AppProcessPanelProps) {
     }
   }, [selectedAppId, selected?.process.length]);
 
-  async function handleAddProcess(e: FormEvent) {
+  function handleAddProcess(e: FormEvent) {
     e.preventDefault();
     if (!selected) return;
     setError('');
-    try {
-      await addProcess(selected.id, processForm);
-      setMessage('Langkah proses berhasil ditambahkan');
-      setProcessForm({ processCode: '', name: '', sequence: processForm.sequence + 10, isFinal: false });
-      setShowProcessForm(false);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal menambah proses');
-    }
+    setConfirmKind('process');
   }
 
-  async function handleAddRouting(e: FormEvent) {
+  function handleAddRouting(e: FormEvent) {
     e.preventDefault();
     if (!selected) return;
     setError('');
+    setConfirmKind('routing');
+  }
+
+  async function handleConfirmSave() {
+    if (!selected || !confirmKind) return;
+    setSaving(true);
+    setError('');
     try {
-      await addRouting(selected.id, {
-        fromProcess: routingForm.fromProcess,
-        toProcess: routingForm.toProcess,
-        roleCode: routingForm.roleCode || undefined,
-      });
-      setMessage('Aturan routing berhasil ditambahkan');
-      setRoutingForm({ fromProcess: '', toProcess: '', roleCode: '' });
-      setShowRoutingForm(false);
+      if (confirmKind === 'process') {
+        await addProcess(selected.id, processForm);
+        setMessage('Langkah proses berhasil ditambahkan');
+        setProcessForm({ processCode: '', name: '', sequence: processForm.sequence + 10, isFinal: false });
+        setShowProcessForm(false);
+      } else {
+        await addRouting(selected.id, {
+          fromProcess: routingForm.fromProcess,
+          toProcess: routingForm.toProcess,
+          roleCode: routingForm.roleCode || undefined,
+        });
+        setMessage('Aturan routing berhasil ditambahkan');
+        setRoutingForm({ fromProcess: '', toProcess: '', roleCode: '' });
+        setShowRoutingForm(false);
+      }
+      setConfirmKind(null);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal menambah routing');
+      setError(getErrorMessage(err, 'Gagal menyimpan'));
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -230,7 +243,7 @@ export function AppProcessPanel({ selectedAppId }: AppProcessPanelProps) {
               Proses akhir (final) — transaksi bisa ditutup di tahap ini
             </label>
             <div className="form-actions">
-              <Button type="submit">Simpan Langkah</Button>
+              <Button type="submit">Lanjut Konfirmasi →</Button>
               <Button type="button" variant="secondary" onClick={() => setShowProcessForm(false)}>
                 Batal
               </Button>
@@ -370,7 +383,7 @@ export function AppProcessPanel({ selectedAppId }: AppProcessPanelProps) {
               </p>
             </div>
             <div className="form-actions">
-              <Button type="submit">Simpan Routing</Button>
+              <Button type="submit">Lanjut Konfirmasi →</Button>
               <Button type="button" variant="secondary" onClick={() => setShowRoutingForm(false)}>
                 Batal
               </Button>
@@ -415,6 +428,41 @@ export function AppProcessPanel({ selectedAppId }: AppProcessPanelProps) {
           </tbody>
         </table>
       </Card>
+
+      <ConfirmSaveModal
+        open={confirmKind !== null}
+        title={confirmKind === 'process' ? 'Tambah Langkah Proses' : 'Tambah Aturan Routing'}
+        summary={
+          confirmKind === 'process' ? (
+            <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+              <li>
+                Kode: <strong>{processForm.processCode}</strong>
+              </li>
+              <li>
+                Nama: <strong>{processForm.name}</strong>
+              </li>
+              <li>Urutan: {processForm.sequence}</li>
+              <li>Final: {processForm.isFinal ? 'Ya' : 'Tidak'}</li>
+            </ul>
+          ) : (
+            <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+              <li>
+                {routingForm.fromProcess} → {routingForm.toProcess}
+              </li>
+              <li>Role: {routingForm.roleCode || 'Semua role'}</li>
+            </ul>
+          )
+        }
+        busy={saving}
+        error={confirmKind !== null ? error : ''}
+        onConfirm={() => void handleConfirmSave()}
+        onCancel={() => {
+          if (!saving) {
+            setConfirmKind(null);
+            setError('');
+          }
+        }}
+      />
     </div>
   );
 }

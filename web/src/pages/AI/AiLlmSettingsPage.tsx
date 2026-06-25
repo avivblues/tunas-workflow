@@ -5,6 +5,8 @@ import { Badge } from '../../components/atoms/Badge';
 import { Button } from '../../components/atoms/Button';
 import { Card } from '../../components/atoms/Card';
 import { Input } from '../../components/atoms/Input';
+import { FormFeedback } from '../../components/molecules/FormFeedback';
+import { ConfirmSaveModal } from '../../components/molecules/ConfirmSaveModal';
 import {
   disconnectLlm,
   getLlmConfig,
@@ -14,6 +16,7 @@ import {
   type LlmProviderInfo,
   type UserLlmConfig,
 } from '../../services/ai.service';
+import { getErrorMessage } from '../../services/api-client';
 import './AiLlmSettingsPage.css';
 
 const PROVIDER_META: Record<LlmProvider, { icon: string; description: string; keyHint: string; keyUrl: string }> = {
@@ -42,6 +45,7 @@ export function AiLlmSettingsPage() {
   const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const selectedProvider = providers.find((p) => p.code === provider);
 
@@ -76,8 +80,14 @@ export function AiLlmSettingsPage() {
     }
   }
 
-  async function onSave(e: FormEvent) {
+  function onReview(e: FormEvent) {
     e.preventDefault();
+    setError('');
+    setMessage('');
+    setConfirmOpen(true);
+  }
+
+  async function onConfirmSave() {
     setSaving(true);
     setError('');
     setMessage('');
@@ -90,8 +100,9 @@ export function AiLlmSettingsPage() {
       setConfig(saved);
       setApiKey('');
       setMessage('Koneksi AI berhasil disimpan.');
+      setConfirmOpen(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal menyimpan');
+      setError(getErrorMessage(err, 'Gagal menyimpan'));
     } finally {
       setSaving(false);
     }
@@ -190,7 +201,7 @@ export function AiLlmSettingsPage() {
       </Card>
 
       <Card title="API Key & Model">
-        <form onSubmit={onSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={onReview} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <Input
             label="API Key"
             type="password"
@@ -226,12 +237,11 @@ export function AiLlmSettingsPage() {
             . Key tidak dibagikan ke user lain dan dienkripsi di server.
           </div>
 
-          {error && <p style={{ color: '#dc2626', fontSize: '0.85rem' }}>{error}</p>}
-          {message && <p style={{ color: '#059669', fontSize: '0.85rem' }}>{message}</p>}
+          <FormFeedback success={message} error={error && !confirmOpen ? error : ''} />
 
           <div className="ai-form-actions">
             <Button type="submit" loading={saving}>
-              Simpan Koneksi
+              Lanjut Konfirmasi →
             </Button>
             <Button type="button" variant="secondary" loading={testing} onClick={() => void onTest()}>
               Tes Koneksi
@@ -247,6 +257,29 @@ export function AiLlmSettingsPage() {
           </div>
         </form>
       </Card>
+
+      <ConfirmSaveModal
+        open={confirmOpen}
+        title="Simpan Koneksi AI"
+        summary={
+          <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
+            <li>
+              Provider: <strong>{provider}</strong>
+            </li>
+            <li>Model: {model}</li>
+            <li>API key: {apiKey ? 'Baru diisi' : config?.hasApiKey ? 'Tidak diubah' : '—'}</li>
+          </ul>
+        }
+        busy={saving}
+        error={confirmOpen ? error : ''}
+        onConfirm={() => void onConfirmSave()}
+        onCancel={() => {
+          if (!saving) {
+            setConfirmOpen(false);
+            setError('');
+          }
+        }}
+      />
     </div>
   );
 }

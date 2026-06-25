@@ -22,6 +22,7 @@ import { registerIntegrationRoutes } from './api/routes/integration.routes.js';
 import { registerMenuRoutes } from './api/routes/menu.routes.js';
 import { registerAiRoutes } from './api/routes/ai.routes.js';
 import { registerReportRoutes } from './api/routes/report.routes.js';
+import { registerSwagger } from './plugins/swagger.plugin.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -40,6 +41,8 @@ export async function buildApp() {
       files: 5,
     },
   });
+
+  await registerSwagger(app);
 
   await app.register(authPlugin);
 

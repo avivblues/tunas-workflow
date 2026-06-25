@@ -201,7 +201,7 @@ http://103.94.238.207:3050/api/integration/isp/01
 
 | Tool | Lokasi |
 |------|--------|
-| Postman collection | `docs/postman/ISP-Partner-API.postman_collection.json` |
+| **Swagger UI** | `http://103.94.238.207:3050/api/docs` (interactive, recommended) |
 | Smoke test script | `bash scripts/isp-partner-api-test.sh` |
 | Dokumen umum integrasi | `docs/integration-api.md` |
 
@@ -785,6 +785,8 @@ Tanyakan daftar lengkap ke admin Tunas.
 
 ## 9. Testing & validasi
 
+Checklist lengkap: **[ISP-UAT-CHECKLIST.md](./ISP-UAT-CHECKLIST.md)**
+
 ### 9.1 Smoke test otomatis
 
 ```bash
@@ -797,14 +799,21 @@ API_KEY=your-key-here \
 bash scripts/isp-partner-api-test.sh
 ```
 
-### 9.2 Postman
+### 9.2 Swagger UI
+
+1. Buka `http://103.94.238.207:3050/api/docs`
+2. Klik **Authorize** → masukkan API Key di header `X-Api-Key`
+3. Coba endpoint **ISP Partner** → **Inbound webhook**
+4. Untuk uji otomatis: `bash scripts/isp-partner-api-test.sh`
+
+### 9.3 Postman (opsional)
 
 1. Import file: `docs/postman/ISP-Partner-API.postman_collection.json`
 2. Set variables: `base_url`, `tenant_code`, `api_key`
 3. Jalankan folder **Push — Create Ticket** → copy `trx_no` ke variable
 4. Jalankan folder **Push — Update Status** berurutan
 
-### 9.3 Skenario uji manual
+### 9.4 Skenario uji manual
 
 | # | Skenario | Expected |
 |---|----------|----------|
