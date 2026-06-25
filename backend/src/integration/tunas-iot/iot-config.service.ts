@@ -28,6 +28,28 @@ export function domainCodeToHierarchy(domainCode: string, tenantCode: string): s
   return domainCode.replace(/\./g, '/');
 }
 
+/** Prefer domain/hierarchy from payload; fallback to MQTT topic domain. */
+export function resolveDomainCodeFromPayload(
+  raw: Record<string, unknown>,
+  topicDomainCode: string,
+  tenantCode: string,
+): string {
+  const fromPayload = String(
+    raw.hierarchy_code ?? raw.hierarchyCode ?? raw.domain_code ?? raw.domainCode ?? '',
+  ).trim();
+  if (!fromPayload) return topicDomainCode;
+
+  if (fromPayload.startsWith(`${tenantCode}.`) || fromPayload === tenantCode) {
+    return fromPayload;
+  }
+
+  if (fromPayload.includes('.')) {
+    return fromPayload;
+  }
+
+  return hierarchyToDomainCode(tenantCode, fromPayload.replace(/\./g, '/'));
+}
+
 export function buildTunasIotDashboardUrl(
   baseUrl: string,
   hierarchy: string,

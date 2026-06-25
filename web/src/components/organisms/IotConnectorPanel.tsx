@@ -27,7 +27,7 @@ const OPERATOR_LABELS: Record<(typeof OPERATORS)[number], string> = {
 function newThreshold(): IotThresholdRule {
   return {
     id: `rule-${Date.now()}`,
-    field: 'temperature',
+    field: 'temperature_1',
     operator: 'gt',
     value: 45,
     severity: 'HIGH',
@@ -227,6 +227,29 @@ export function IotConnectorPanel({
       </div>
 
       <div>
+        <strong style={{ display: 'block', marginBottom: '0.5rem' }}>MQTT telemetry payload (multi-sensor)</strong>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', margin: '0 0 0.5rem' }}>
+          Topic: <code>tunas/&#123;tenant&#125;/L01/Z01/telemetry</code> atau{' '}
+          <code>tunas/&#123;tenant&#125;/telemetry</code> + <code>hierarchy_code</code> di body.
+        </p>
+        <pre className="isp-panel-code" style={{ fontSize: '0.78rem' }}>
+{`{
+  "device_id": "TUNAS-POWER",
+  "hierarchy_code": "01.L01.Z01",
+  "temperature_1": 32.7,
+  "humidity_1": 61.2,
+  "voltage_1": 221.8,
+  "current_1": 0,
+  "power_1": 0
+}`}
+        </pre>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', margin: '0.5rem 0 0' }}>
+          <code>device_id</code> = <code>asset_code</code> di master asset Tunas Workflow. Gauge &amp; add device
+          dikelola di dashboard Tunas IoT; Workflow menerima telemetry dan membuat WO saat threshold terpenuhi.
+        </p>
+      </div>
+
+      <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <strong>Threshold rules (auto WO)</strong>
           <Button
@@ -241,8 +264,10 @@ export function IotConnectorPanel({
           </Button>
         </div>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-muted)', margin: '0.35rem 0 0.5rem' }}>
-          Contoh: field <code>temperature</code>, operator <strong>&gt;</strong>, value <strong>30</strong> →
-          auto WO saat suhu &gt; 30°C dari MQTT telemetry.
+          Satu device bisa punya banyak sensor — gunakan nama field persis seperti di payload MQTT, misal{' '}
+          <code>temperature_1</code>, <code>humidity_2</code>, <code>voltage_5</code>. Contoh device{' '}
+          <code>TUNAS-POWER</code> mengirim <code>temperature_1</code> … <code>voltage_12</code> dalam satu
+          JSON.
         </p>
         <div style={{ display: 'grid', gap: '0.5rem', marginTop: '0.5rem' }}>
           {(settings.mapping.thresholds ?? []).map((rule, index) => (

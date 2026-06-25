@@ -7,6 +7,7 @@ import {
   isWithinCooldown,
   meetsMinSeverity,
   parseTunasMqttTopic,
+  resolveDomainCodeFromPayload,
   resolveDomainLink,
 } from './iot-config.service.js';
 import type { IotSeverity } from './iot-config.types.js';
@@ -61,15 +62,16 @@ async function handleMqttMessage(topic: string, payload: Buffer) {
     return;
   }
 
-  const domainLink = resolveDomainLink(iot.mapping, parsedTopic.domainCode, parsedTopic.tenantCode);
-  if (!domainLink) {
-    console.info(`[MQTT] Domain ${parsedTopic.domainCode} not linked — skipped`);
-    return;
-  }
-
   const raw = parseMqttPayload(payload);
   if (!raw) {
     console.warn(`[MQTT] Invalid JSON on ${topic}`);
+    return;
+  }
+
+  const domainCode = resolveDomainCodeFromPayload(raw, parsedTopic.domainCode, parsedTopic.tenantCode);
+  const domainLink = resolveDomainLink(iot.mapping, domainCode, parsedTopic.tenantCode);
+  if (!domainLink) {
+    console.info(`[MQTT] Domain ${domainCode} not linked — skipped`);
     return;
   }
 
@@ -86,7 +88,7 @@ async function handleMqttMessage(topic: string, payload: Buffer) {
 
     const match = evaluateThresholds(raw, iot.mapping.thresholds ?? [], {
       assetCode,
-      domainCode: parsedTopic.domainCode,
+      domainCode,
     });
     if (!match) return;
 
@@ -103,7 +105,7 @@ async function handleMqttMessage(topic: string, payload: Buffer) {
     const eventId = String(
       raw.event_id ??
         raw.eventId ??
-        `mqtt-${parsedTopic.domainCode}-${match.rule.id}-${Date.now()}`,
+        `mqtt-${domainCode}-${match.rule.id}-${Date.now()}`,
     );
 
     try {
@@ -113,7 +115,7 @@ async function handleMqttMessage(topic: string, payload: Buffer) {
         title: match.title,
         description: match.description,
         severity: match.severity,
-        domain_code: parsedTopic.domainCode,
+        domain_code: domainCode,
         operator: 'MQTT_THRESHOLD',
         metadata: {
           ...raw,
@@ -145,7 +147,7 @@ async function handleMqttMessage(topic: string, payload: Buffer) {
     title: String(raw.title ?? 'IoT Alert'),
     description: String(raw.description ?? raw.message ?? 'Sensor alert'),
     severity,
-    domain_code: parsedTopic.domainCode,
+    domain_code: domainCode,
     operator: raw.operator ? String(raw.operator) : 'MQTT',
     metadata: {
       ...(raw.metadata && typeof raw.metadata === 'object' ? (raw.metadata as Record<string, unknown>) : raw),

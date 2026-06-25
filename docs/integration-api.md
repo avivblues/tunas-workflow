@@ -321,6 +321,59 @@ curl -X POST "http://103.94.238.207:3050/api/integration/iot/01/work-order" \
 
 ---
 
+## 6c-2 — MQTT Telemetry (auto WO dari threshold)
+
+Selain HTTP webhook, Tunas Workflow subscribe MQTT broker Tunas IoT. Satu **device** bisa mengirim **banyak sensor** dalam satu payload JSON (field bernomor: `temperature_1`, `voltage_5`, dll).
+
+### Topic pattern
+
+```
+tunas/{tenantCode}/telemetry
+tunas/{tenantCode}/{location}/{zone}/telemetry
+tunas/{tenantCode}/iot/alert
+```
+
+Contoh tenant `01`, zone `01.L01.Z01`:
+
+```
+tunas/01/L01/Z01/telemetry
+```
+
+### Payload contoh (multi-sensor)
+
+```json
+{
+  "device_id": "TUNAS-POWER",
+  "hierarchy_code": "01.L01.Z01",
+  "temperature_1": 32.7,
+  "humidity_1": 61.2,
+  "temperature_2": 32.9,
+  "voltage_1": 221.8,
+  "current_1": 0,
+  "power_1": 0,
+  "frequency_1": 50
+}
+```
+
+| Field | Keterangan |
+|-------|------------|
+| `device_id` | Di-mapping ke `asset_code` — harus ada di master asset Workflow |
+| `hierarchy_code` | Opsional jika topic sudah spesifik zone; override lokasi WO |
+| `temperature_N` / `humidity_N` / `voltage_N` | Nilai numerik per sensor — dipakai threshold rule |
+
+### Threshold rule
+
+Atur di **Integrations → Tunas IoT → Threshold rules**. Nama field rule harus **persis** sama dengan key di payload, misal:
+
+| Field rule | Operator | Value | Arti |
+|------------|----------|-------|------|
+| `temperature_1` | `gt` | `45` | WO jika suhu sensor 1 > 45°C |
+| `voltage_1` | `lt` | `200` | WO jika tegangan phase 1 < 200V |
+
+> **Gauge & add device** dikelola di aplikasi **Tunas IoT** (dashboard). Tunas Workflow hanya menerima telemetry/alert dan membuat `ENG_WO` saat threshold terpenuhi atau operator konfirmasi via HTTP API.
+
+---
+
 ## 6a — Odoo Asset Sync (internal)
 
 Odoo disinkronkan dari admin UI, bukan webhook eksternal.

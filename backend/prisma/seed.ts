@@ -399,6 +399,12 @@ async function main() {
       category: 'FIXED_ASSET',
       locationCode: '01.L02',
     },
+    {
+      assetCode: 'TUNAS-POWER',
+      name: 'Tunas Power Monitor — Multi Sensor',
+      category: 'FIXED_ASSET',
+      locationCode: '01.L01.Z01',
+    },
   ];
 
   for (const a of demoAssets) {
@@ -680,21 +686,30 @@ async function main() {
         ],
         thresholds: [
           {
-            id: 'temp-high',
-            field: 'temperature',
+            id: 'temp-1-high',
+            field: 'temperature_1',
             operator: 'gt',
             value: 45,
             severity: 'HIGH',
-            title_template: 'High temperature — {asset_code}',
+            title_template: 'High temperature sensor 1 — {asset_code}',
             enabled: true,
           },
           {
-            id: 'humidity-high',
-            field: 'humidity',
+            id: 'humidity-1-high',
+            field: 'humidity_1',
             operator: 'gt',
             value: 85,
             severity: 'MEDIUM',
-            title_template: 'High humidity — {asset_code}',
+            title_template: 'High humidity sensor 1 — {asset_code}',
+            enabled: true,
+          },
+          {
+            id: 'voltage-1-low',
+            field: 'voltage_1',
+            operator: 'lt',
+            value: 200,
+            severity: 'CRITICAL',
+            title_template: 'Low voltage phase 1 — {asset_code}',
             enabled: true,
           },
         ],
