@@ -1,0 +1,489 @@
+.marketplace-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.marketplace-hero {
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+}
+
+.marketplace-hero h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+}
+
+.marketplace-hero p {
+  margin: 0 0 1.25rem;
+  color: var(--color-muted);
+}
+
+.marketplace-search {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.marketplace-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  position: relative;
+}
+
+.marketplace-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: sticky;
+  top: 1rem;
+  z-index: 5;
+  align-self: start;
+  pointer-events: auto;
+}
+
+.marketplace-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+  scroll-margin-top: 1rem;
+}
+
+.marketplace-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+}
+
+.marketplace-active-filters-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted, #64748b);
+}
+
+.filter-chip {
+  border: 1px solid var(--color-primary, #0d9488);
+  background: var(--color-primary-soft, #f0fdfa);
+  color: var(--color-primary, #0d9488);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.filter-chip:hover {
+  background: #ccfbf1;
+}
+
+.marketplace-filter-count {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--color-muted, #64748b);
+}
+
+.installed-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.marketplace-catalog-section {
+  scroll-margin-top: 1rem;
+}
+
+.marketplace-empty-inline {
+  padding: 1rem;
+  margin: 0;
+}
+
+.filter-group-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  margin: 0 0 0.5rem;
+}
+
+.filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.filter-btn {
+  text-align: left;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.filter-btn:hover {
+  background: var(--color-primary-soft);
+}
+
+.filter-btn.active {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.marketplace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.app-card-market {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  background: #fff;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.app-card-market:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+  transform: translateY(-1px);
+}
+
+.app-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.app-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.app-card-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.app-card-vendor {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  margin-top: 0.15rem;
+}
+
+.app-card-desc {
+  font-size: 0.88rem;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.45;
+  flex: 1;
+}
+
+.app-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.app-card-rating {
+  color: #f5a623;
+  font-weight: 600;
+}
+
+.app-card-features {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.app-card-supported {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.installed-card {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 1rem;
+  background: #fafbfc;
+}
+
+.installed-list-compact {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.installed-list-compact .installed-card-expanded {
+  grid-column: 1 / -1;
+}
+
+.marketplace-installed-section {
+  scroll-margin-top: 1rem;
+}
+
+.installed-card-compact {
+  background: #fff;
+}
+
+.installed-card-expanded {
+  background: #fff;
+}
+
+.installed-card-header-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.installed-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.app-card-installed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.installed-card-identity {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.installed-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.installed-card-meta {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.installed-card-webhook {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.installed-card-webhook code {
+  word-break: break-all;
+}
+
+.connector-status-block {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.connector-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.connector-status-details {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.connector-status-ok {
+  color: var(--color-text, #334155);
+}
+
+.connector-status-sep {
+  color: var(--color-muted);
+  margin: 0 0.15rem;
+}
+
+.connector-status-label {
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.connector-status-muted {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.installed-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.connector-panel-details {
+  margin-top: 0.75rem;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.connector-panel-summary {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.connector-panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.connector-panel-summary::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform 0.15s;
+}
+
+.connector-panel-details[open] .connector-panel-summary::before {
+  transform: rotate(90deg);
+}
+
+.connector-panel-body {
+  padding: 0 0.85rem 0.85rem;
+  display: grid;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.iot-connector-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.isp-panel-section {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.isp-panel-muted {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-muted, #64748b);
+  line-height: 1.45;
+}
+
+.isp-panel-endpoint {
+  font-size: 0.85rem;
+}
+
+.isp-panel-endpoints {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.isp-panel-subsection {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.isp-panel-subtitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text, #334155);
+}
+
+.isp-panel-apps-table {
+  font-size: 0.82rem;
+  margin-top: 0.25rem;
+}
+
+.isp-panel-code {
+  margin: 0;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.isp-panel-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 280px;
+}
+
+.isp-panel-filter-label {
+  font-size: 0.8rem;
+  color: var(--color-muted, #64748b);
+}
+
+.isp-panel-form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.marketplace-section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+
+.marketplace-section-sub {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  margin: 0 0 1rem;
+}
+
+.marketplace-message {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0.9rem;
+}
+
+.marketplace-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: 10px;
+}
+
+@media (max-width: 900px) {
+  .marketplace-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .marketplace-sidebar {
+    position: static;
+  }
+}

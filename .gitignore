@@ -1,16 +1,43 @@
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.env
-api/.env
-frontend/.env
+# Dependencies
 node_modules/
-dist/
-frontend/dist/
-.vscode/
-.DS_Store
 
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+coverage/
+
+# Prisma
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# Mobile
+mobile/.expo/
+mobile/android/
+mobile/ios/
+
+# Docker volumes (local)
+infra/data/

@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tunas-wf-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tunas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tunas_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-tunas_workflow}
+    volumes:
+      - tunas_wf_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-tunas} -d ${POSTGRES_DB:-tunas_workflow}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tunas-wf
+
+  redis:
+    image: redis:7-alpine
+    container_name: tunas-wf-redis
+    restart: unless-stopped
+    networks:
+      - tunas-wf
+
+  minio:
+    image: minio/minio:latest
+    container_name: tunas-wf-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-tunas}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-tunas_secret}
+    volumes:
+      - tunas_wf_minio:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - tunas-wf
+
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: tunas-wf-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      API_HOST: 0.0.0.0
+      API_PORT: 3000
+      API_PREFIX: /api
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://103.94.238.207:3050}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-tunas}:${POSTGRES_PASSWORD:-tunas_secret}@postgres:5432/${POSTGRES_DB:-tunas_workflow}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-tunas}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-tunas_secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-tunas-attachments}
+      MINIO_USE_SSL: 'false'
+      INTEGRATION_WORKER_ENABLED: ${INTEGRATION_WORKER_ENABLED:-true}
+      INTEGRATION_WORKER_INTERVAL_MS: ${INTEGRATION_WORKER_INTERVAL_MS:-120000}
+      MQTT_ENABLED: ${MQTT_ENABLED:-true}
+      MQTT_BROKER_URL: ${MQTT_BROKER_URL:-mqtt://103.94.238.207:1883}
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      MQTT_TOPIC_PATTERNS: ${MQTT_TOPIC_PATTERNS:-tunas/+/+/+/telemetry,tunas/+/+/telemetry,tunas/+/iot/alert,tunas/+/+/+/iot/alert}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    networks:
+      - tunas-wf
+
+  web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: tunas-wf-web
+    restart: unless-stopped
+    ports:
+      - '${WEB_PORT:-3050}:80'
+    depends_on:
+      - backend
+    networks:
+      - tunas-wf
+
+volumes:
+  tunas_wf_pgdata:
+  tunas_wf_minio:
+
+networks:
+  tunas-wf:
+    driver: bridge

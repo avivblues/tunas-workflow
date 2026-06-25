@@ -1,0 +1,220 @@
+# 🌱 Tunas Workflow AI Rules
+
+You are coding Tunas Workflow.
+
+Read docs before large changes:
+- docs/ARCHITECTURE.md
+- docs/DATABASE.md
+- docs/API_STANDARD.md
+
+
+## Core Concept
+
+Tunas Workflow is a:
+
+Configuration Driven Transaction Platform.
+
+NOT traditional ticketing.
+
+
+Different apps:
+- IT_SUPPORT
+- ISP_TICKET
+- ENG_WO
+- GA_SUPPORT
+- VEHICLE_BOOKING
+
+share same engine.
+
+
+## Golden Rule
+
+DO NOT create:
+- IT ticket engine
+- ISP engine
+- workflow builder
+- approval builder
+- app specific transaction table
+
+
+USE:
+- app_master
+- app_process
+- app_routing
+
+and:
+
+- transaction_header
+- transaction_detail
+- transaction_log
+
+
+Different behavior =
+configuration.
+
+
+## Backend
+
+Stack:
+- NodeJS
+- Fastify
+- Typescript
+- Prisma
+- PostgreSQL
+
+
+Architecture:
+
+controller
+ ↓
+service
+ ↓
+repository
+
+
+Business logic NEVER in controller.
+
+
+## Database Rules
+
+Every tenant data:
+
+MUST have tenant_id.
+
+
+Always filter:
+
+tenant_id = currentTenant
+
+
+Never create:
+
+it_ticket
+ga_ticket
+wo_ticket
+
+
+## API Rules
+
+Use generic endpoint:
+
+
+/api/transaction
+
+
+with:
+
+
+app_code
+
+
+Example:
+
+
+{
+ appCode:"IT_SUPPORT",
+ data:{}
+}
+
+
+
+Do NOT create:
+
+
+/api/it-ticket
+
+
+
+
+## Routing Rule
+
+Never hardcode approval.
+
+Wrong:
+
+if(manager)
+ approve()
+
+
+Correct:
+
+read app_routing.
+
+
+
+
+## Frontend
+
+React + Typescript.
+
+Use Atomic Design:
+
+
+atoms
+
+molecules
+
+organisms
+
+templates
+
+pages
+
+
+
+Components reusable.
+
+
+Pages CAN be specific:
+
+Allowed:
+
+ITDashboard
+
+EngineeringWOPage
+
+VehiclePage
+
+
+
+But must use same API.
+
+
+
+
+## Mobile
+
+React Native shell app.
+
+Dynamic menu from API.
+
+Avoid Playstore update.
+
+
+
+
+## Integration
+
+External systems:
+
+Google
+Odoo
+ISP Billing
+Tunas IoT
+
+
+must use:
+
+connector pattern.
+
+
+
+## Before Coding
+
+Always:
+
+1. Check existing files
+2. Reuse components
+3. Follow app_code pattern
+4. Do not duplicate modules
+

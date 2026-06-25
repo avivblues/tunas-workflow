@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "DomainNode" ADD COLUMN "latitude" DOUBLE PRECISION;
+ALTER TABLE "DomainNode" ADD COLUMN "longitude" DOUBLE PRECISION;

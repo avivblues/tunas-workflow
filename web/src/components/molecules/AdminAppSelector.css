@@ -1,0 +1,71 @@
+.admin-app-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-app-group-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.admin-app-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-app-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: #334155;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.admin-app-chip:hover {
+  border-color: #0d9488;
+  background: #f0fdfa;
+}
+
+.admin-app-chip.active {
+  border-color: #0d9488;
+  background: #0f766e;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.25);
+}
+
+.admin-app-chip.inactive {
+  opacity: 0.55;
+}
+
+.admin-app-chip-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.admin-app-chip-label {
+  font-weight: 500;
+}
+
+.admin-app-chip-badge {
+  font-size: 0.65rem;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.admin-app-chip.active .admin-app-chip-badge {
+  background: rgba(255, 255, 255, 0.2);
+}

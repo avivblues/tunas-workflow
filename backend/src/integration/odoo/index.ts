@@ -1,0 +1,5 @@
+/**
+ * Odoo / ERP connector.
+ */
+
+export {};

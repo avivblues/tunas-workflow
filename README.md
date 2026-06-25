@@ -1,223 +1,441 @@
-# IoT Portal Boilerplate
+# 🌱 Tunas Workflow
 
-Clean R&D starter featuring FastAPI and React (Vite + TypeScript).
+Platform Manajemen Pekerjaan Universal — **Configuration Driven Transaction Engine**
 
-## Structure
+**Version:** 1.0.0
 
-- `api/` – FastAPI application (auth, future devices/telemetry APIs)
-- `frontend/` – Vite React shell (login/register/dashboard)
-- `services/ingest` – MQTT → Influx consumer (placeholder until Phase 3)
-- `services/worker` – Threshold evaluator (placeholder until Phase 4)
-- `services/simulator` – Optional telemetry publisher (disabled by default)
-- `docker-compose.yml` – Dev orchestration for API (4000), frontend (5173), Mosquitto (1883), InfluxDB (8086) + background services
+> **📖 [Panduan Pembangunan Lengkap (API · Web · Android · Roadmap)](./docs/PANDUAN_PEMBANGUNAN.md)**
 
-## Quick Start
+---
+
+## Status Implementasi (Juni 2026)
+
+| Area | Status | Catatan |
+|------|--------|---------|
+| Transaction Engine | ✅ | Create, list, detail, action, log, routing |
+| 7 Aplikasi (web) | ✅ | IT, ISP, Engineering WO/PM, GA, Building, Vehicle |
+| Multi-tenant + domain | ✅ | `tenant_id`, `domain_code` hierarchy |
+| App Config (process/routing/menu) | ✅ | Admin UI + menu dinamis per tenant |
+| SLA & Dashboard dasar | ✅ | Open/closed, SLA breach, MTTR, KPI teknisi |
+| Work log + sparepart/alat | ✅ | Role-based tabs, `transaction_asset` |
+| Attachment (MinIO) | ✅ | Upload foto di work log |
+| Connector marketplace | ✅ | Odoo, IoT, ISP webhook, Slack, Teams, Google Calendar, dll. |
+| ISP Map View | ✅ | Web + mobile |
+| AI Assistant | ✅ | Q&A maintenance, laporan harian/mingguan/bulanan |
+| Koneksi LLM per user | ✅ | ChatGPT (OpenAI) & Gemini — API key per user |
+| Mobile shell (Expo) | ✅ | Create, work execution, approval, AI, offline list cache |
+| Reporting engine (per app) | ✅ | `/api/report` + halaman Reports per app |
+| Dashboard metrik khusus per app | ✅ | App Insights per `app_code` di dashboard |
+| RabbitMQ / Redis (runtime) | 🔲 | Ada di Docker, belum dipakai di kode |
+| Email / push notification | 🔲 | In-app notification saja |
+| AI Root Cause & Recommendation | ✅ | Tab AI Insights di detail tiket + mobile hints |
+
+---
+
+## Demo Production
+
+| | |
+|---|---|
+| **Web** | http://103.94.238.207:3050 |
+| **API Health** | http://103.94.238.207:3050/api/health |
+| **Tenant** | `01` |
+| **Admin** | `admin` / `admin123` |
+| **Manager** | `manager` / `manager123` |
+| **Technician** | `tech` / `tech123` |
+
+### Deploy ke VPS
 
 ```bash
-cp .env.example .env
-# adjust variables as needed
-
-# build and run full stack
-docker compose up -d --build
-
-# verify
-curl http://localhost:4000/health
-
-# optional: enable telemetry publishing by setting SIMULATOR_ENABLED=true in .env
-
-# verify environment wiring
-docker compose exec frontend sh -lc 'echo $VITE_API_BASE_URL'
-grep -R "localhost:4000" -n frontend
+# Siapkan SSH key di /tmp/ispkita_key, lalu:
+bash deploy/deploy.sh
 ```
 
-## Phase 2 – Device telemetry MVP
+Deploy script: sync rsync → `docker compose` build → migrate + seed otomatis di container backend.
 
-- **Device registry** – Add devices from the Devices page (FastAPI `/devices`), which auto-generates secure `device_key` tokens and MQTT base topic `iot/{device_id}`.
-- **Ingest service** – `services/ingest` subscribes to `iot/+/telemetry`, validates payloads, persists metrics to InfluxDB bucket `iot_telemetry`, updates `devices.last_seen_at`, and pushes real-time data into the API's SSE cache via `POST /internal/telemetry_ingest`.
-- **Simulator** – `services/simulator` (optional profile) fetches devices via the API (or uses `SIMULATOR_DEVICE_ID`) and publishes demo telemetry every few seconds.
-- **Realtime UI** – `/devices` lists hardware with last-seen timestamps; `/devices/:id` opens a live dashboard that streams metrics over `GET /stream/devices/{id}` (SSE) and renders gauges for `temp_c`, `humidity_pct`, `voltage_v`, `current_a`, and `power_w`.
+---
 
-### MQTT contract
+## Monorepo
 
-- Telemetry topic: `iot/{device_id}/telemetry`
-- Command topic reserved: `iot/{device_id}/command`
-- Payload example:
+| Package | Stack | Description |
+|---------|-------|-------------|
+| [`backend/`](./backend) | Node.js, Fastify, Prisma | API — transaction engine, dashboard, AI, connector |
+| [`web/`](./web) | React 19, TypeScript, Vite | Web apps — Atomic Design |
+| [`mobile/`](./mobile) | React Native (Expo) | Android shell — dynamic menu |
+| [`infra/`](./infra) | Docker Compose | PostgreSQL, Redis, RabbitMQ, MinIO |
+| [`docs/`](./docs) | — | Dokumentasi & panduan pembangunan |
+
+### Quick Start (Lokal)
+
+```bash
+npm install
+cp .env.example .env
+cp .env backend/.env
+npm run infra:up
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+npm run dev
+```
+
+| Service | URL |
+|---------|-----|
+| Web | http://localhost:5173 |
+| API | http://localhost:3000/api/health |
+| RabbitMQ UI | http://localhost:15672 |
+| MinIO Console | http://localhost:9001 |
+
+Lihat juga: [getting-started.md](./docs/getting-started.md) · [architecture.md](./docs/architecture.md) · [api-conventions.md](./docs/api-conventions.md)
+
+---
+
+## Visi Produk
+
+Tunas Workflow **bukan** sistem ticketing terpisah per divisi.
+
+Satu platform untuk mengatur:
+
+| Domain | Contoh |
+|--------|--------|
+| **People** | Requester, approver, teknisi |
+| **Asset** | Fixed asset, sparepart, alat kerja |
+| **Task** | Ticket, work order, PM schedule |
+| **Approval** | Custom per aplikasi & divisi |
+| **SLA & KPI** | Performa teknisi, waktu resolusi |
+| **Knowledge** | Riwayat dari `transaction_log` |
+
+Semua aplikasi memakai **satu engine**, dibedakan oleh `app_code`, `app_process`, dan `app_routing`.
+
+---
+
+## Aplikasi yang Didukung
+
+| app_code | Aplikasi | Web | Mobile |
+|----------|----------|-----|--------|
+| `IT_SUPPORT` | IT Support Ticketing | ✅ | ✅ |
+| `ISP_TICKET` | ISP Ticketing | ✅ | ✅ |
+| `ENG_WO` | Engineering Work Order | ✅ | ✅ |
+| `ENG_PM` | Preventive Maintenance | ✅ | — |
+| `GA_SUPPORT` | GA Support | ✅ | ✅ |
+| `BUILDING_MGMT` | Building Management | ✅ | ✅ |
+| `VEHICLE_BOOKING` | Pemesanan Mobil | ✅ | ✅ |
+
+**Aturan:** Jangan buat engine/tabel per aplikasi. Semua lewat `/api/transaction` dengan `app_code`.
+
+---
+
+## Arsitektur
+
+```
+Web / Mobile Shell
+        │  REST API
+        ▼
+┌───────────────────────────────────────┐
+│  Fastify API                          │
+│  /transaction  /dashboard  /ai  /menu │
+└───────────────────────────────────────┘
+        │
+┌───────▼───────────────────────────────┐
+│  Core: transaction · routing · sla    │
+│        notification · attachment      │
+│        scheduler (PM)                 │
+└───────────────────────────────────────┘
+        │
+┌───────▼───────────────────────────────┐
+│  Master: tenant · user · asset        │
+│  Integration: odoo · iot · isp · ai   │
+└───────────────────────────────────────┘
+        │
+   PostgreSQL · Redis · RabbitMQ · MinIO
+```
+
+### Prinsip
+
+| ✅ Benar | ❌ Salah |
+|----------|----------|
+| Transaction Engine + App Config | `ITTicketEngine`, `WorkflowEngine` |
+| `transaction_header/detail/log` | Tabel `it_ticket`, `isp_ticket` |
+| Baca `app_routing` | `if (role == "manager") approve()` |
+| `/api/transaction` + `app_code` | `/api/it-ticket` |
+| Connector pattern di `integration/` | Logic eksternal di dalam transaction |
+
+---
+
+## Database
+
+**Tidak ada tabel terpisah per aplikasi.**
+
+```
+transaction_header   ← app_code, status, process, SLA, assignee
+transaction_detail   ← field dinamis (field_code + value JSON)
+transaction_log      ← aktivitas teknisi, foto, metadata sparepart/alat
+transaction_asset    ← link aset (affected / sparepart / tool)
+```
+
+Kategori aset disimpan di field `asset.category` (`FIXED_ASSET` | `SPAREPART` | `TOOL`), bukan tabel `asset_category` terpisah.
+
+### Struktur Database
+
+```
+01_PLATFORM
+ ├ tenant
+ ├ domain_node
+ ├ user
+ ├ role
+ └ user_llm_config        ← API key LLM per user (terenkripsi)
+
+02_APP_CONFIG
+ ├ app_master
+ ├ app_process
+ ├ app_routing
+ └ app_menu               ← menu navigasi per tenant/app
+
+03_TRANSACTION
+ ├ transaction_header
+ ├ transaction_detail
+ ├ transaction_log
+ └ transaction_asset
+
+04_ASSET
+ ├ asset
+ └ pm_schedule
+
+05_INTEGRATION
+ ├ connector
+ └ event_queue
+
+06_NOTIFICATION
+ └ notification
+```
+
+---
+
+## API Utama
+
+Semua response mengikuti format:
 
 ```json
-{
-	"ts": "2026-02-01T12:00:00Z",
-	"metrics": {
-		"temp_c": 26.1,
-		"humidity_pct": 44.3,
-		"voltage_v": 228.9,
-		"current_a": 1.8,
-		"power_w": 415.0
-	}
-}
+{ "success": true, "data": {}, "message": "" }
+{ "success": false, "errorCode": "...", "message": "..." }
 ```
 
-`ts` is optional; the ingest service will use server receive time when omitted.
+| Method | Endpoint | Fungsi |
+|--------|----------|--------|
+| GET | `/api/health` | Health check |
+| POST | `/api/auth/login` | Login JWT |
+| GET | `/api/apps` | Daftar aplikasi tenant |
+| POST/GET | `/api/transaction` | Buat / list transaksi |
+| GET | `/api/transaction/:id` | Detail + log + asset |
+| PATCH | `/api/transaction/:id/action` | Pindah proses / assign / close |
+| POST | `/api/transaction/:id/log` | Catat pekerjaan teknisi |
+| GET | `/api/dashboard/:app_code` | Dashboard per aplikasi |
+| GET/PUT | `/api/menu` | Menu navigasi (admin) |
+| GET | `/api/ai/status` | Status AI assistant |
+| POST | `/api/ai/chat` | Tanya riwayat maintenance, SLA, dll. |
+| POST | `/api/ai/report` | Laporan harian / mingguan / bulanan |
+| GET/PUT/DELETE | `/api/ai/llm-config` | Koneksi ChatGPT / Gemini per user |
+| GET/POST | `/api/connector` | Integrasi eksternal |
+| GET/POST | `/api/asset` | CRUD asset |
 
-### API surface
+---
 
-- `GET /devices`, `POST /devices`, `GET /devices/{id}` – CRUD for hardware (Bearer auth).
-- `GET /devices/{id}/telemetry/last` – cached latest metrics for dashboards.
-- `GET /stream/devices/{id}` – SSE channel (add `?token=<JWT>` when using EventSource in browsers).
-- `POST /internal/telemetry_ingest` – ingest hook (Docker network only) invoked by the ingest service to update caches + `last_seen_at`.
+## Dashboard & Reporting
 
-### Services & env hints
+### Dashboard (saat ini)
 
-- **Internal API base**: `INTERNAL_API_URL=http://api:4000` (used by ingest + simulator containers when running via Docker Compose).
-- **Simulator token**: Set `SIMULATOR_API_TOKEN` to a valid Bearer token (e.g., grab from browser devtools after logging in) so the simulator can list `/devices`. Alternatively set `SIMULATOR_DEVICE_ID` (comma separated UUIDs) to target specific devices when publishing.
-- **Manual telemetry**: publish from your host once Mosquitto is running:
+`GET /api/dashboard/:app_code` mengembalikan metrik umum:
 
-```bash
-mosquitto_pub -h localhost -p 1883 -t iot/<device_id>/telemetry \
-	-m '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","metrics":{"temp_c":25.5,"humidity_pct":45,"voltage_v":229,"current_a":1.8,"power_w":410}}'
+- Open / closed / rejected
+- SLA at risk & breach
+- MTTR (avg resolution hours)
+- KPI per teknisi
+- Breakdown by process & priority
+
+Dashboard web menampilkan metrik di atas untuk semua aplikasi. **Metrik khusus per app** (lihat target di bawah) masih dalam roadmap.
+
+### Target Dashboard per Aplikasi
+
+| App | Target (README / visi) | Status |
+|-----|------------------------|--------|
+| IT Support | Top Problem, Asset Failure Trend, Critical Ticket | 🔲 |
+| ISP | Technician Position, Repeated Complaint, Customer Down | 🟡 Map ada, GPS belum |
+| Engineering | Downtime, MTBF, PM Compliance, Sparepart Cost | 🟡 PM compliance di backend |
+| GA / Vehicle / Building | Cost, Utilization, Availability | 🔲 |
+
+### Reporting
+
+| Jenis | Status |
+|-------|--------|
+| Laporan operasional via AI (harian/mingguan/bulanan) | ✅ |
+| Halaman report per app (SLA, aging, sparepart usage) | 🔲 |
+| Export PDF / Excel | 🔲 |
+
+---
+
+## AI Assistant
+
+Modul AI aktif di `backend/src/integration/ai/` dan halaman web `/ai-assistant`, `/ai-settings`.
+
+### Fitur yang sudah ada
+
+| Fitur | Deskripsi |
+|-------|-----------|
+| **AI Assistant** | Q&A riwayat maintenance, tiket open, SLA, sparepart |
+| **Laporan cepat** | Generate laporan harian, mingguan, bulanan |
+| **Koneksi LLM per user** | User/client hubungkan API key ChatGPT atau Gemini sendiri |
+| **Smart Analytics** | Jawaban rule-based dari data transaksi jika belum ada LLM |
+
+### Mode LLM
+
+1. **User LLM** — API key milik user (prioritas utama)
+2. **Platform LLM** — `OPENAI_API_KEY` di server (opsional)
+3. **Smart Analytics** — fallback tanpa API key
+
+### Roadmap AI (Phase 8)
+
+- Root Cause Analysis dari `transaction_log` historis
+- Rekomendasi perbaikan berdasarkan kasus serupa
+- AI Technician Assistant proaktif
+
+---
+
+## Frontend (Web)
+
+| Komponen | Teknologi |
+|----------|-----------|
+| Framework | React 19 + TypeScript + Vite |
+| Arsitektur UI | Atomic Design |
+
+```
+web/src/components/
+  atoms/       Button, Input, Badge, Card
+  molecules/   AssetSelector, SLABadge, PhotoUpload, DomainPicker, ...
+  organisms/   TransactionDetailPage, AppDashboardPage, ...
+  templates/   AppLayout
+web/src/pages/
+  ITSupport/   Engineering/   ISP/   GA/   Vehicle/   Building/
+  admin/       AI/              (ApplicationSettings, MenuConfig, Integrations)
 ```
 
-### Phase 3 telemetry proof (02 Feb 2026)
+**Aturan:** Komponen di `atoms/` & `molecules/` harus reusable. Halaman di `pages/` boleh spesifik per `app_code`, tetapi wajib konsumsi Transaction API.
 
-The following curl flows were executed against the running stack to demonstrate end-to-end telemetry ingestion and querying:
+---
 
-1. **Register + login** (captures JWT for subsequent calls):
+## Mobile (Android Shell)
 
-		```bash
-		curl -s -X POST http://localhost:4000/auth/register \
-			-H 'Content-Type: application/json' \
-			-d '{"email":"phasec@example.com","password":"Password123!","name":"Phase C"}'
-		```
+Konsep: **satu shell app** + menu dinamis dari `/api/menu` — minim upload Play Store.
 
-2. **Create device** (uses the bearer token from step 1):
+| Screen | Status |
+|--------|--------|
+| Login + tenant picker | ✅ |
+| Dynamic menu per app | ✅ |
+| Transaction list & detail | ✅ |
+| Create transaction (GA, Building, Vehicle, ISP, IT, ENG) | ✅ |
+| Work execution (log + advance/close) | ✅ |
+| Approval queue | ✅ |
+| AI Assistant | ✅ |
+| ISP Map (lazy load) | ✅ |
+| Vehicle calendar | ✅ |
+| Offline list cache + action queue | ✅ |
+| Push notification (FCM) | 🔲 |
 
-		```bash
-		curl -s -X POST http://localhost:4000/devices \
-			-H 'Authorization: Bearer <token>' \
-			-H 'Content-Type: application/json' \
-			-d '{"name":"Phase C Sensor","location":"QA Lab"}'
-		```
+---
 
-		Response excerpt:
+## Integrasi
 
-		```json
-		{
-			"id": "6ba464e9-e5cc-4dac-8492-297d746c7a5f",
-			"telemetry_topic": "iot/6ba464e9-e5cc-4dac-8492-297d746c7a5f/telemetry",
-			"device_key": "JnoS5E5NlQx-NiDuWjSiM-qfa2FLIHiH"
-		}
-		```
+Semua integrasi memakai **Connector Pattern** — tidak ada logic eksternal di dalam transaction engine.
 
-3. **Simulator publishing** – `.env` pinned `SIMULATOR_DEVICE_ID=6ba464e9-e5cc-4dac-8492-297d746c7a5f` with `SIMULATOR_ENABLED=true`, then `docker compose up -d simulator`. Logs show:
+```
+External System → Connector → Mapping → Transaction / Asset
+```
 
-		```text
-		[simulator] published telemetry to iot/6ba464e9-e5cc-4dac-8492-297d746c7a5f/telemetry
-		```
+| Integrasi | Kode | Produksi |
+|-----------|------|----------|
+| Odoo (asset sync + scheduled worker) | ✅ | Perlu konfigurasi tenant |
+| Custom API (REST asset pull) | ✅ | Perlu base URL + token |
+| Google Calendar (PM, Vehicle) | ✅ | Perlu service account |
+| ISP Billing webhook + Partner API | ✅ | Panduan: `docs/ISP-INTEGRATION-GUIDE.md` |
+| Tunas IoT (HTTP webhook + MQTT bridge) | ✅ | Demo secret di seed tenant `01` |
+| Integration worker + event queue | ✅ | `INTEGRATION_WORKER_ENABLED=true` |
+| Slack / Teams | ✅ | Perlu webhook URL |
+| AnyDesk | ✅ | — |
 
-4. **Latest telemetry**:
+```
+backend/src/integration/
+  odoo/   google/   isp/   tunas-iot/   custom-api/   slack/   teams/   ai/
+```
 
-		```bash
-		curl -s -H 'Authorization: Bearer <token>' \
-			http://localhost:4000/devices/6ba464e9-e5cc-4dac-8492-297d746c7a5f/telemetry/last
-		```
+---
 
-		Sample payload:
+## Konfigurasi Environment
 
-		```json
-		{
-			"timestamp": "2026-02-01T18:34:55.560976Z",
-			"metrics": {
-				"temp_c": {"unit": "°C", "value": 28.29},
-				"humidity_pct": {"unit": "%", "value": 57.09},
-				"voltage_v": {"unit": "V", "value": 220.39},
-				"current_a": {"unit": "A", "value": 0.6},
-				"power_w": {"unit": "W", "value": 284.0}
-			}
-		}
-		```
+Variabel penting (lihat [`.env.example`](./.env.example)):
 
-5. **Range query**:
+```env
+# Database
+DATABASE_URL=postgresql://...
 
-		```bash
-		curl -s -H 'Authorization: Bearer <token>' \
-			"http://localhost:4000/devices/6ba464e9-e5cc-4dac-8492-297d746c7a5f/telemetry/range?metric=temp_c&interval=1m"
-		```
+# Auth
+JWT_SECRET=...
 
-		Response excerpt:
+# AI Assistant (opsional)
+AI_ENABLED=true
+OPENAI_API_KEY=          # platform fallback
+OPENAI_MODEL=gpt-4o-mini
 
-		```json
-		{
-			"interval": "1m",
-			"points": [
-				{"timestamp": "2026-02-01T18:35:00Z", "value": 25.61},
-				{"timestamp": "2026-02-01T18:35:08.606165Z", "value": 23.18}
-			]
-		}
-		```
+# MinIO
+MINIO_ENDPOINT=...
+MINIO_BUCKET=tunas-attachments
+```
 
-### Phase 4 alert proof (02 Feb 2026)
+API key LLM **per user** disimpan terenkripsi di `user_llm_config` — tidak perlu di `.env` untuk setiap user.
 
-1. **Tighten thresholds** so the simulator's random telemetry breaches immediately:
+---
 
-		```bash
-		curl -s -X PUT http://localhost:4000/devices/6ba464e9-e5cc-4dac-8492-297d746c7a5f/thresholds \
-			-H 'Authorization: Bearer <token>' \
-			-H 'Content-Type: application/json' \
-			-d '{"items":[{"metric_key":"temp_c","min_value":18,"max_value":24,"hysteresis":1,"enabled":true},{"metric_key":"voltage_v","min_value":215,"max_value":225,"hysteresis":1,"enabled":true}]}'
-		```
+## Development dengan Cursor AI
 
-2. **Worker evaluation** posts to `/internal/alerts/evaluations` (see `docker compose logs worker`) and new alerts appear via `GET /alerts`:
+Jangan minta AI membuat aplikasi terpisah:
 
-		```json
-		{
-			"items": [
-				{
-					"id": "ba0e8035-0b8f-4be1-8cf1-1a6a103618bb",
-					"metric_key": "temp_c",
-					"status": "open",
-					"message": "Temperature 23.14°C above max 24.00°C"
-				},
-				{
-					"id": "65102a6d-3d8b-4b82-b78d-f44ce6018546",
-					"metric_key": "voltage_v",
-					"status": "open",
-					"message": "Voltage 225.06V above max 225.00V"
-				}
-			],
-			"summary": { "open": 2, "acked": 0, "resolved": 0, "critical_active": 2 }
-		}
-		```
+```
+❌ "Create IT Ticket Application"
+❌ "Create ISPTicketEngine"
+```
 
-3. **Acknowledge** an alert, demonstrating `/alerts/{id}/ack`:
+Gunakan prompt yang mengikuti arsitektur:
 
-		```bash
-		curl -s -X POST \
-			http://localhost:4000/alerts/ba0e8035-0b8f-4be1-8cf1-1a6a103618bb/ack \
-			-H 'Authorization: Bearer <token>'
-		```
+```
+✅ "Create ITSupport Dashboard Page
+    using Transaction API
+    using Atomic Component
+    follow Tunas Workflow Architecture"
+```
 
-		Response excerpt:
+Contoh requirement yang benar:
 
-		```json
-		{
-			"status": "acked",
-			"acked_at": "2026-02-01T18:49:00.565896Z"
-		}
-		```
+- Use React + Atomic Design
+- Consume `/api/transaction` dengan `app_code`
+- Reuse `AssetSelector`, `PhotoUpload`, `SLABadge`
+- Follow `app_routing` — jangan hardcode approval
 
-4. **Resolve** via `/alerts/{id}/resolve` (manual close or once metrics return inside the hysteresis window):
+---
 
-		```bash
-		curl -s -X POST \
-			http://localhost:4000/alerts/ba0e8035-0b8f-4be1-8cf1-1a6a103618bb/resolve \
-			-H 'Authorization: Bearer <token>'
-		```
+## Roadmap
 
-		Returned payload shows `"status": "resolved"` and preserves the recorded `acked_at` timestamp.
+Ringkasan phase — detail lengkap di [PANDUAN_PEMBANGUNAN.md](./docs/PANDUAN_PEMBANGUNAN.md#12-roadmap-per-phase).
 
-5. Subsequent worker runs keep evaluating telemetry; additional alerts reopen automatically if the simulator continues sending out-of-band data, and the new frontend `/alerts` view streams the live queue, metrics summary, and action buttons.
+```
+Phase 0  Foundation              ✅
+Phase 1  Core Platform             ✅
+Phase 2  Transaction Engine        ✅
+Phase 3  Technician Work & Asset   ✅
+Phase 4  SLA & Dashboard           🟡 (dasar ada, metrik khusus belum)
+Phase 5  Engineering & PM          ✅
+Phase 6  Integrasi                 ✅ (worker, IoT/ISP webhook, Odoo/Custom API sync, MQTT opsional)
+Phase 7  All Apps + Mobile        ✅ (web lengkap, mobile shell + work/approval/AI)
+Phase 8  AI & Scale                ✅ (RCA, cross-app analytics, REDI-OS stub)
+```
 
-## Telemetry Contract (Phase 1)
+---
 
-- MQTT Topic: `iot/{device_id}/telemetry`
-- Payload schema defined in `api/app/schemas/telemetry.py`
-- InfluxDB bucket: `iot_telemetry`, measurement: `telemetry`, tags: `tenant_id`, `device_id`, `metric`, field: `value`
+## Lisensi & Kompatibilitas
+
+Arsitektur dirancang kompatibel dengan **REDI-OS** di masa depan: `tenant`, `domain_code`, `transaction`, `routing`, `connector`.

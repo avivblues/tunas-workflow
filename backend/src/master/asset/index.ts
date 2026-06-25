@@ -1,0 +1,5 @@
+/**
+ * Asset master module.
+ */
+
+export {};

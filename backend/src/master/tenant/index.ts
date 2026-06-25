@@ -1,0 +1,5 @@
+/**
+ * Tenant master module.
+ */
+
+export {};

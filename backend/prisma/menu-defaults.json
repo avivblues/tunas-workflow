@@ -1,0 +1,359 @@
+{
+  "menus": [
+    {
+      "appCode": "SYSTEM",
+      "menuCode": "DASHBOARD",
+      "label": "Dashboard",
+      "path": "/",
+      "icon": "🏠",
+      "sequence": 0,
+      "showWeb": true
+    },
+    {
+      "appCode": "SYSTEM",
+      "menuCode": "AI_ASSISTANT",
+      "label": "AI Assistant",
+      "path": "/ai-assistant",
+      "icon": "🤖",
+      "sequence": 50,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "SYSTEM",
+      "menuCode": "AI_LLM_SETTINGS",
+      "label": "Koneksi AI",
+      "path": "/ai-settings",
+      "icon": "🔑",
+      "sequence": 55,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "SYSTEM",
+      "menuCode": "CROSS_ANALYTICS",
+      "label": "Cross-App Analytics",
+      "path": "/analytics",
+      "icon": "📈",
+      "sequence": 60,
+      "showWeb": true,
+      "showMobile": false
+    },
+    {
+      "appCode": "SYSTEM",
+      "menuCode": "APPROVALS",
+      "label": "Approvals",
+      "path": "/approvals",
+      "icon": "✅",
+      "sequence": 900,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "SYSTEM",
+      "menuCode": "ADMIN_USERS",
+      "label": "Users",
+      "path": "/admin/users",
+      "icon": "👤",
+      "sequence": 910,
+      "showWeb": true,
+      "roleCode": "TENANT_ADMIN"
+    },
+    {
+      "appCode": "SYSTEM",
+      "menuCode": "ADMIN_DOMAINS",
+      "label": "Domains",
+      "path": "/admin/domains",
+      "icon": "🗺️",
+      "sequence": 920,
+      "showWeb": true,
+      "roleCode": "TENANT_ADMIN"
+    },
+    {
+      "appCode": "SYSTEM",
+      "menuCode": "ADMIN_APPS",
+      "label": "App Config",
+      "path": "/admin/apps",
+      "icon": "⚙️",
+      "sequence": 930,
+      "showWeb": true,
+      "roleCode": "TENANT_ADMIN"
+    },
+    {
+      "appCode": "SYSTEM",
+      "menuCode": "ADMIN_MENU",
+      "label": "Menu Config",
+      "path": "/admin/menu",
+      "icon": "📋",
+      "sequence": 940,
+      "showWeb": true,
+      "roleCode": "TENANT_ADMIN"
+    },
+    {
+      "appCode": "SYSTEM",
+      "menuCode": "ADMIN_INTEGRATIONS",
+      "label": "Integrations",
+      "path": "/admin/integrations",
+      "icon": "🔌",
+      "sequence": 950,
+      "showWeb": true,
+      "roleCode": "TENANT_ADMIN"
+    },
+    {
+      "appCode": "IT_SUPPORT",
+      "menuCode": "LIST",
+      "label": "IT Support",
+      "path": "/it-support/tickets",
+      "icon": "💻",
+      "sequence": 100,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "IT_SUPPORT",
+      "menuCode": "CREATE",
+      "label": "New Ticket",
+      "path": "/it-support/create",
+      "icon": "➕",
+      "sequence": 101,
+      "showWeb": false,
+      "showMobile": true
+    },
+    {
+      "appCode": "IT_SUPPORT",
+      "menuCode": "DASHBOARD",
+      "label": "IT Dashboard",
+      "path": "/it-support/dashboard",
+      "icon": "📊",
+      "sequence": 102,
+      "showWeb": false
+    },
+    {
+      "appCode": "ENG_WO",
+      "menuCode": "LIST",
+      "label": "Engineering WO",
+      "path": "/engineering/work-orders",
+      "icon": "🔧",
+      "sequence": 200,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "ENG_WO",
+      "menuCode": "CREATE",
+      "label": "New Work Order",
+      "path": "/engineering/create",
+      "icon": "➕",
+      "sequence": 201,
+      "showWeb": false,
+      "showMobile": true
+    },
+    {
+      "appCode": "ENG_WO",
+      "menuCode": "DASHBOARD",
+      "label": "Eng Dashboard",
+      "path": "/engineering/dashboard",
+      "icon": "📊",
+      "sequence": 202,
+      "showWeb": false
+    },
+    {
+      "appCode": "ENG_PM",
+      "menuCode": "LIST",
+      "label": "PM Tasks",
+      "path": "/engineering/pm",
+      "icon": "📅",
+      "sequence": 210,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "ENG_PM",
+      "menuCode": "SCHEDULES",
+      "label": "PM Schedules",
+      "path": "/engineering/pm-schedules",
+      "icon": "🗓️",
+      "sequence": 211,
+      "showWeb": true
+    },
+    {
+      "appCode": "ENG_PM",
+      "menuCode": "CALENDAR",
+      "label": "PM Calendar",
+      "path": "/engineering/pm-calendar",
+      "icon": "📆",
+      "sequence": 212,
+      "showWeb": true
+    },
+    {
+      "appCode": "ISP_TICKET",
+      "menuCode": "LIST",
+      "label": "ISP Ticketing",
+      "path": "/isp/tickets",
+      "icon": "📡",
+      "sequence": 300,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "ISP_TICKET",
+      "menuCode": "MAP",
+      "label": "ISP Map",
+      "path": "/isp/map",
+      "icon": "🗺️",
+      "sequence": 301,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "ISP_TICKET",
+      "menuCode": "CREATE",
+      "label": "New ISP Ticket",
+      "path": "/isp/create",
+      "icon": "➕",
+      "sequence": 302,
+      "showWeb": false,
+      "showMobile": true
+    },
+    {
+      "appCode": "ISP_TICKET",
+      "menuCode": "DASHBOARD",
+      "label": "ISP Dashboard",
+      "path": "/isp/dashboard",
+      "icon": "📊",
+      "sequence": 303,
+      "showWeb": false
+    },
+    {
+      "appCode": "GA_SUPPORT",
+      "menuCode": "LIST",
+      "label": "GA Support",
+      "path": "/ga/requests",
+      "icon": "🏢",
+      "sequence": 400,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "GA_SUPPORT",
+      "menuCode": "CREATE",
+      "label": "New GA Request",
+      "path": "/ga/create",
+      "icon": "➕",
+      "sequence": 401,
+      "showWeb": false,
+      "showMobile": true
+    },
+    {
+      "appCode": "GA_SUPPORT",
+      "menuCode": "DASHBOARD",
+      "label": "GA Dashboard",
+      "path": "/ga/dashboard",
+      "icon": "📊",
+      "sequence": 402,
+      "showWeb": false
+    },
+    {
+      "appCode": "VEHICLE_BOOKING",
+      "menuCode": "LIST",
+      "label": "Vehicle Booking",
+      "path": "/vehicle/bookings",
+      "icon": "🚗",
+      "sequence": 500,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "VEHICLE_BOOKING",
+      "menuCode": "CALENDAR",
+      "label": "Vehicle Calendar",
+      "path": "/vehicle/calendar",
+      "icon": "📆",
+      "sequence": 501,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "VEHICLE_BOOKING",
+      "menuCode": "CREATE",
+      "label": "New Booking",
+      "path": "/vehicle/create",
+      "icon": "➕",
+      "sequence": 502,
+      "showWeb": false,
+      "showMobile": true
+    },
+    {
+      "appCode": "VEHICLE_BOOKING",
+      "menuCode": "DASHBOARD",
+      "label": "Vehicle Dashboard",
+      "path": "/vehicle/dashboard",
+      "icon": "📊",
+      "sequence": 503,
+      "showWeb": false
+    },
+    {
+      "appCode": "BUILDING_MGMT",
+      "menuCode": "LIST",
+      "label": "Building Mgmt",
+      "path": "/building/issues",
+      "icon": "🏗️",
+      "sequence": 600,
+      "showWeb": true,
+      "showMobile": true
+    },
+    {
+      "appCode": "BUILDING_MGMT",
+      "menuCode": "CREATE",
+      "label": "Report Issue",
+      "path": "/building/create",
+      "icon": "➕",
+      "sequence": 601,
+      "showWeb": false,
+      "showMobile": true
+    },
+    {
+      "appCode": "BUILDING_MGMT",
+      "menuCode": "DASHBOARD",
+      "label": "Building Dashboard",
+      "path": "/building/dashboard",
+      "icon": "📊",
+      "sequence": 602,
+      "showWeb": false
+    }
+  ],
+  "groups": [
+    {
+      "appCode": "SYSTEM",
+      "label": "System"
+    },
+    {
+      "appCode": "IT_SUPPORT",
+      "label": "IT Support"
+    },
+    {
+      "appCode": "ENG_WO",
+      "label": "Engineering WO"
+    },
+    {
+      "appCode": "ENG_PM",
+      "label": "Preventive Maintenance"
+    },
+    {
+      "appCode": "ISP_TICKET",
+      "label": "ISP Ticketing"
+    },
+    {
+      "appCode": "GA_SUPPORT",
+      "label": "GA Support"
+    },
+    {
+      "appCode": "VEHICLE_BOOKING",
+      "label": "Vehicle Booking"
+    },
+    {
+      "appCode": "BUILDING_MGMT",
+      "label": "Building Management"
+    }
+  ]
+}

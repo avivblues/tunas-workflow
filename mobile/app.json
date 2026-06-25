@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Tunas Workflow",
+    "slug": "tunas-workflow",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "tunas-workflow",
+    "platforms": ["ios", "android"],
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#16a34a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tunas.workflow"
+    },
+    "android": {
+      "package": "com.tunas.workflow",
+      "adaptiveIcon": {
+        "backgroundColor": "#16a34a"
+      }
+    },
+    "extra": {
+      "apiBaseUrl": "${EXPO_PUBLIC_API_BASE_URL}"
+    }
+  }
+}

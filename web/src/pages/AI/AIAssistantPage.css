@@ -1,0 +1,135 @@
+.ai-assistant-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 960px;
+}
+
+.ai-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ai-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ai-chat-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.ai-chat-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+}
+
+.ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  max-height: 420px;
+}
+
+.ai-message {
+  max-width: 92%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.ai-message.user {
+  align-self: flex-end;
+  background: #0f766e;
+  color: #fff;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.ai-message.assistant {
+  align-self: flex-start;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-bottom-left-radius: 0.25rem;
+}
+
+.ai-message-content h1,
+.ai-message-content h2,
+.ai-message-content h3 {
+  font-size: 1rem;
+  margin: 0.5rem 0 0.35rem;
+}
+
+.ai-message-content h1:first-child,
+.ai-message-content h2:first-child,
+.ai-message-content h3:first-child {
+  margin-top: 0;
+}
+
+.ai-message-content ul {
+  margin: 0.35rem 0 0.35rem 1.1rem;
+}
+
+.ai-message-content p {
+  margin: 0.35rem 0;
+}
+
+.ai-message-content hr {
+  border: none;
+  border-top: 1px solid #cbd5e1;
+  margin: 0.75rem 0;
+}
+
+.ai-message-content em {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.ai-input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.ai-input-row input {
+  flex: 1;
+}
+
+.ai-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ai-suggestion-chip {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: #334155;
+}
+
+.ai-suggestion-chip:hover {
+  border-color: #0f766e;
+  color: #0f766e;
+}
+
+.ai-empty-state {
+  color: #64748b;
+  text-align: center;
+  padding: 2rem 1rem;
+  font-size: 0.9rem;
+}

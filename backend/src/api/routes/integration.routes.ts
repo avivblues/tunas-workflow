@@ -1,0 +1,137 @@
+import type { FastifyInstance } from 'fastify';
+import { sendSuccess } from '../../lib/response.js';
+import { verifyIspPartnerAuth, verifyWebhookSecret } from '../../integration/connector/connector.service.js';
+import { ispWebhookSchema, processIspWebhook } from '../../integration/isp/isp.connector.js';
+import {
+  ispPartnerListQuerySchema,
+  ispPartnerLogSchema,
+  ispPartnerReportBundleQuerySchema,
+  ispPartnerReportQuerySchema,
+  ispPartnerUpdateSchema,
+} from '../../integration/isp/isp-partner.schema.js';
+import {
+  addIspPartnerTicketLog,
+  getIspPartnerProcessFlow,
+  getIspPartnerReport,
+  getIspPartnerReportBundle,
+  getIspPartnerTicket,
+  listIspPartnerTickets,
+  updateIspPartnerTicket,
+} from '../../integration/isp/isp-partner.service.js';
+import { isIspPartnerAppCode } from '../../integration/isp/isp-partner.types.js';
+import {
+  createWorkOrderFromIot,
+  iotWorkOrderSchema,
+} from '../../integration/tunas-iot/iot.connector.js';
+import {
+  getIntegrationStatus,
+  runIntegrationWorkerCycle,
+} from '../../core/integration/integration-worker.service.js';
+import { processPendingEvents } from '../../core/integration/event-queue.service.js';
+
+function getWebhookSecret(request: { headers: Record<string, unknown> }) {
+  const raw = request.headers['x-webhook-secret'];
+  return typeof raw === 'string' ? raw : undefined;
+}
+
+function getPartnerApiKey(request: { headers: Record<string, unknown> }) {
+  const apiKey = request.headers['x-api-key'];
+  if (typeof apiKey === 'string') return apiKey;
+  return getWebhookSecret(request);
+}
+
+export async function registerIntegrationRoutes(app: FastifyInstance) {
+  app.post('/integration/isp/:tenantCode/webhook', async (request, reply) => {
+    const { tenantCode } = request.params as { tenantCode: string };
+    const { tenant } = await verifyWebhookSecret(tenantCode, 'ISP', getWebhookSecret(request));
+    const input = ispWebhookSchema.parse(request.body);
+    const result = await processIspWebhook(tenant.id, input);
+    return sendSuccess(reply, result, 'ISP ticket created', 201);
+  });
+
+  app.get('/integration/isp/:tenantCode/tickets', async (request, reply) => {
+    const { tenantCode } = request.params as { tenantCode: string };
+    const { tenant } = await verifyIspPartnerAuth(tenantCode, getPartnerApiKey(request));
+    const query = ispPartnerListQuerySchema.parse(request.query);
+    const result = await listIspPartnerTickets(tenant.id, query);
+    return sendSuccess(reply, result);
+  });
+
+  app.get('/integration/isp/:tenantCode/tickets/:trxNo', async (request, reply) => {
+    const { tenantCode, trxNo } = request.params as { tenantCode: string; trxNo: string };
+    const { tenant } = await verifyIspPartnerAuth(tenantCode, getPartnerApiKey(request));
+    const result = await getIspPartnerTicket(tenant.id, trxNo);
+    return sendSuccess(reply, result);
+  });
+
+  app.patch('/integration/isp/:tenantCode/tickets/:trxNo', async (request, reply) => {
+    const { tenantCode, trxNo } = request.params as { tenantCode: string; trxNo: string };
+    const { tenant } = await verifyIspPartnerAuth(tenantCode, getPartnerApiKey(request));
+    const input = ispPartnerUpdateSchema.parse(request.body);
+    const result = await updateIspPartnerTicket(tenant.id, trxNo, input);
+    return sendSuccess(reply, result, 'Ticket updated');
+  });
+
+  app.post('/integration/isp/:tenantCode/tickets/:trxNo/logs', async (request, reply) => {
+    const { tenantCode, trxNo } = request.params as { tenantCode: string; trxNo: string };
+    const { tenant } = await verifyIspPartnerAuth(tenantCode, getPartnerApiKey(request));
+    const input = ispPartnerLogSchema.parse(request.body);
+    const result = await addIspPartnerTicketLog(tenant.id, trxNo, input);
+    return sendSuccess(reply, result, 'Log added', 201);
+  });
+
+  app.get('/integration/isp/:tenantCode/report', async (request, reply) => {
+    const { tenantCode } = request.params as { tenantCode: string };
+    const { tenant } = await verifyIspPartnerAuth(tenantCode, getPartnerApiKey(request));
+    const query = ispPartnerReportQuerySchema.parse(request.query);
+    const result = await getIspPartnerReport(tenant.id, query);
+    return sendSuccess(reply, result);
+  });
+
+  app.get('/integration/isp/:tenantCode/reports/bundle', async (request, reply) => {
+    const { tenantCode } = request.params as { tenantCode: string };
+    const { tenant } = await verifyIspPartnerAuth(tenantCode, getPartnerApiKey(request));
+    const query = ispPartnerReportBundleQuerySchema.parse(request.query);
+    const result = await getIspPartnerReportBundle(tenant.id, query);
+    return sendSuccess(reply, result);
+  });
+
+  app.get('/integration/isp/:tenantCode/processes', async (request, reply) => {
+    const { tenantCode } = request.params as { tenantCode: string };
+    await verifyIspPartnerAuth(tenantCode, getPartnerApiKey(request));
+    const { app_code } = request.query as { app_code?: string };
+    const result = app_code && isIspPartnerAppCode(app_code)
+      ? getIspPartnerProcessFlow(app_code)
+      : getIspPartnerProcessFlow();
+    return sendSuccess(reply, result);
+  });
+
+  app.post('/integration/iot/:tenantCode/work-order', async (request, reply) => {
+    const { tenantCode } = request.params as { tenantCode: string };
+    const { tenant } = await verifyWebhookSecret(tenantCode, 'IOT', getWebhookSecret(request));
+    const input = iotWorkOrderSchema.parse(request.body);
+    const result = await createWorkOrderFromIot(tenant.id, input);
+    const status = result.duplicate ? 200 : 201;
+    const message = result.duplicate ? 'Work order already exists' : 'Work order created';
+    return sendSuccess(reply, result, message, status);
+  });
+
+  await app.register(async (secured) => {
+    secured.addHook('preHandler', app.authenticate);
+
+    secured.get('/integration/status', async (request, reply) => {
+      const status = await getIntegrationStatus(request.tenantId!);
+      return sendSuccess(reply, status);
+    });
+
+    secured.post('/integration/worker/run', async (request, reply) => {
+      const result = await runIntegrationWorkerCycle(request.tenantId!);
+      return sendSuccess(reply, result, 'Integration worker cycle completed');
+    });
+
+    secured.post('/integration/events/process', async (request, reply) => {
+      const result = await processPendingEvents(request.tenantId!);
+      return sendSuccess(reply, result, 'Event queue processed');
+    });
+  });
+}

@@ -1,0 +1,192 @@
+{
+  "info": {
+    "name": "Tunas Workflow — ISP Partner API",
+    "description": "Integrasi ISP_TICKET: push (webhook/create/update) + pull (list/detail/report).\n\nSet variables:\n- base_url: http://103.94.238.207:3050/api\n- tenant_code: 01\n- api_key: (dari Integration Marketplace → ISP Billing)\n- trx_no: (diisi setelah create ticket)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://103.94.238.207:3050/api" },
+    { "key": "tenant_code", "value": "01" },
+    { "key": "api_key", "value": "tunas-demo-webhook-secret-2024" },
+    { "key": "trx_no", "value": "TW00001" }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "value", "value": "{{api_key}}", "type": "string" },
+      { "key": "key", "value": "X-Api-Key", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "Process Flow",
+      "item": [
+        {
+          "name": "Get Process Flow",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/processes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Push — Create Ticket",
+      "item": [
+        {
+          "name": "Webhook Create (REQUEST)",
+          "request": {
+            "auth": {
+              "type": "apikey",
+              "apikey": [
+                { "key": "value", "value": "{{api_key}}", "type": "string" },
+                { "key": "key", "value": "X-Webhook-Secret", "type": "string" }
+              ]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"CUSTOMER_COMPLAINT\",\n  \"customer_id\": \"CUST-1001\",\n  \"customer_name\": \"Budi Santoso\",\n  \"area\": \"01.ISP01\",\n  \"device_serial\": \"ONT-8821\",\n  \"description\": \"Internet putus, LOS merah\",\n  \"priority\": \"HIGH\"\n}"
+            },
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/webhook"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pull — Tickets",
+      "item": [
+        {
+          "name": "List Tickets",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/integration/isp/{{tenant_code}}/tickets?status=OPEN&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["integration", "isp", "{{tenant_code}}", "tickets"],
+              "query": [
+                { "key": "status", "value": "OPEN" },
+                { "key": "process", "value": "WORKING", "disabled": true },
+                { "key": "customer_id", "value": "CUST-1001", "disabled": true },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Ticket Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/tickets/{{trx_no}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Push — Update Status",
+      "item": [
+        {
+          "name": "Advance to ASSIGN",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"ADVANCE\",\n  \"to_process\": \"ASSIGN\",\n  \"operator\": \"ISP-NOC\",\n  \"comment\": \"Masuk antrian assign\"\n}"
+            },
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/tickets/{{trx_no}}"
+          }
+        },
+        {
+          "name": "Advance to DISPATCH",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"ADVANCE\",\n  \"to_process\": \"DISPATCH\",\n  \"operator\": \"ISP-DISPATCH\"\n}"
+            },
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/tickets/{{trx_no}}"
+          }
+        },
+        {
+          "name": "Advance to WORKING",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"ADVANCE\",\n  \"to_process\": \"WORKING\",\n  \"operator\": \"tech-field\"\n}"
+            },
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/tickets/{{trx_no}}"
+          }
+        },
+        {
+          "name": "Advance to RESOLVED",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"ADVANCE\",\n  \"to_process\": \"RESOLVED\",\n  \"operator\": \"tech-field\",\n  \"comment\": \"ONT diganti, sinyal normal\"\n}"
+            },
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/tickets/{{trx_no}}"
+          }
+        },
+        {
+          "name": "Close Ticket",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"CLOSE\",\n  \"to_process\": \"CLOSE\",\n  \"operator\": \"ISP-NOC\",\n  \"comment\": \"Tiket selesai\"\n}"
+            },
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/tickets/{{trx_no}}"
+          }
+        },
+        {
+          "name": "Add Field Log",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"FIELD_NOTE\",\n  \"description\": \"Teknisi sudah di lokasi pelanggan\",\n  \"operator\": \"tech-ahmad\"\n}"
+            },
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/tickets/{{trx_no}}/logs"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pull — Reporting",
+      "item": [
+        {
+          "name": "Report Aging",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/report?type=aging&days=30"
+          }
+        },
+        {
+          "name": "Report SLA",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/report?type=sla&days=30"
+          }
+        },
+        {
+          "name": "Report Technician KPI",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/integration/isp/{{tenant_code}}/report?type=technician&days=30"
+          }
+        }
+      ]
+    }
+  ]
+}
